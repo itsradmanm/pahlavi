@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>پنل پهلوی (Sanaei 3X-UI) | Pahlavy VPN Panel</title>
+  <!-- Modern Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- QRCode.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <!-- Toast Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Login Modal / Screen -->
+  <div id="login-screen" class="login-screen hidden">
+    <div class="login-card">
+      <div class="login-brand">
+        <div class="brand-badge">
+          <span class="flag-icon">🦁</span>
+          <div>
+            <h1 class="brand-title">پهلوی</h1>
+            <span class="brand-subtitle">SANAEI 3X-UI EDITION</span>
+          </div>
+        </div>
+      </div>
+      <h2 class="login-heading" data-i18n="login_title">ورود به پنل مدیریت</h2>
+      <p class="login-desc" data-i18n="login_desc">اطلاعات ورود خود را وارد نمایید</p>
+      
+      <form id="login-form" class="auth-form">
+        <div class="form-group">
+          <label for="login-username" data-i18n="username">نام کاربری</label>
+          <div class="input-icon-wrap">
+            <i class="fa-solid fa-user"></i>
+            <input type="text" id="login-username" placeholder="admin" required autocomplete="username">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="login-password" data-i18n="password">رمز عبور</label>
+          <div class="input-icon-wrap">
+            <i class="fa-solid fa-lock"></i>
+            <input type="password" id="login-password" placeholder="••••••••" required autocomplete="current-password">
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block btn-lg" id="login-btn">
+          <span class="btn-text" data-i18n="login_button">ورود به حساب</span>
+          <i class="fa-solid fa-arrow-left arrow-dir"></i>
+        </button>
+      </form>
+      <div class="login-footer">
+        <span class="lang-switch-link" id="login-lang-switch">English</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main App Layout -->
+  <div id="app-layout" class="app-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="brand-box">
+          <div class="brand-logo-glow">
+            <span class="flag-icon-lg">🦁</span>
+          </div>
+          <div class="brand-details">
+            <h2 class="brand-name" id="sidebar-panel-name">پنل پهلوی</h2>
+            <span class="brand-tag">3X-UI / SANAEI PRO</span>
+          </div>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <button class="nav-item active" data-page="dashboard" id="nav-dashboard">
+          <i class="fa-solid fa-shapes"></i>
+          <span data-i18n="nav_dashboard">داشبورد</span>
+        </button>
+        <button class="nav-item" data-page="inbounds" id="nav-inbounds">
+          <i class="fa-solid fa-network-wired"></i>
+          <span data-i18n="nav_inbounds">اینباندها (Inbounds)</span>
+          <span class="badge" id="sidebar-inbounds-badge">0</span>
+        </button>
+        <button class="nav-item" data-page="resellers" id="nav-resellers">
+          <i class="fa-solid fa-users-gear"></i>
+          <span data-i18n="nav_resellers">نمایندگی</span>
+        </button>
+        <button class="nav-item" data-page="analytics" id="nav-analytics">
+          <i class="fa-solid fa-chart-simple"></i>
+          <span data-i18n="nav_analytics">آمار و ترافیک</span>
+        </button>
+        <button class="nav-item" data-page="settings" id="nav-settings">
+          <i class="fa-solid fa-gear"></i>
+          <span data-i18n="nav_settings">تنظیمات و SSL</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-profile-widget">
+          <div class="user-avatar" id="user-avatar-initial">A</div>
+          <div class="user-info">
+            <div class="user-name" id="user-display-name">ادمین</div>
+            <div class="user-role-badge" id="user-display-role">ADMIN</div>
+          </div>
+        </div>
+        <div class="sidebar-actions">
+          <button class="btn-icon" id="btn-lang-toggle" title="تغییر زبان / Language">
+            <i class="fa-solid fa-language"></i>
+          </button>
+          <button class="btn-icon btn-logout" id="btn-logout" title="خروج / Logout">
+            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <!-- Topbar -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="mobile-menu-toggle" id="mobile-menu-toggle">
+            <i class="fa-solid fa-bars"></i>
+          </button>
+          <div class="page-title-wrap">
+            <h1 class="page-title" id="page-title" data-i18n="nav_dashboard">داشبورد</h1>
+            <p class="page-subtitle" id="page-subtitle">نمای زنده مصرف، وضعیت اینباندها و کلاینت‌ها</p>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <div class="xray-status-chip">
+            <span class="pulse-dot"></span>
+            <span>Xray-core Active</span>
+          </div>
+          <div class="date-chip" id="current-date-chip">
+            <i class="fa-regular fa-calendar"></i>
+            <span id="live-date-text">---</span>
+          </div>
+          <button class="btn btn-outline btn-sm" id="btn-refresh-all">
+            <i class="fa-solid fa-rotate"></i>
+            <span data-i18n="refresh">بروزرسانی</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- PAGE 1: Dashboard -->
+      <section id="page-dashboard" class="page-view active">
+        <!-- Overview Stat Cards -->
+        <div class="stats-grid">
+          <!-- Total Clients -->
+          <div class="stat-card">
+            <div class="stat-icon-wrap icon-primary">
+              <i class="fa-solid fa-users"></i>
+            </div>
+            <div class="stat-body">
+              <span class="stat-value" id="stat-total-clients">0</span>
+              <span class="stat-label" data-i18n="total_clients">کل کاربران / اکانت‌ها</span>
+            </div>
+          </div>
+
+          <!-- Total Inbounds -->
+          <div class="stat-card">
+            <div class="stat-icon-wrap icon-purple">
+              <i class="fa-solid fa-network-wired"></i>
+            </div>
+            <div class="stat-body">
+              <span class="stat-value" id="stat-total-inbounds">0</span>
+              <span class="stat-label" data-i18n="total_inbounds">اینباندهای فعال</span>
+            </div>
+          </div>
+
+          <!-- Online Now -->
+          <div class="stat-card">
+            <div class="stat-icon-wrap icon-success">
+              <i class="fa-solid fa-tower-broadcast"></i>
+            </div>
+            <div class="stat-body">
+              <div class="stat-value-flex">
+                <span class="stat-dot dot-live"></span>
+                <span class="stat-value" id="stat-online-now">0</span>
+              </div>
+              <span class="stat-label" data-i18n="online_now">کاربران آنلاین</span>
+            </div>
+          </div>
+
+          <!-- Active Accounts -->
+          <div class="stat-card">
+            <div class="stat-icon-wrap icon-info">
+              <i class="fa-solid fa-circle-check"></i>
+            </div>
+            <div class="stat-body">
+              <span class="stat-value" id="stat-active-clients">0</span>
+              <span class="stat-label" data-i18n="active_accounts">اکانت‌های فعال</span>
+            </div>
+          </div>
+
+          <!-- Traffic Usage -->
+          <div class="stat-card stat-card-wide">
+            <div class="stat-icon-wrap icon-purple">
+              <i class="fa-solid fa-database"></i>
+            </div>
+            <div class="stat-body">
+              <div class="stat-usage-header">
+                <span class="stat-value" id="stat-traffic-usage">0 GB / 0 GB</span>
+              </div>
+              <div class="stat-progress-bar">
+                <div class="progress-fill" id="stat-traffic-bar" style="width: 0%"></div>
+              </div>
+              <span class="stat-label" data-i18n="traffic_used_limit">مصرف ترافیک کل / سهمیه</span>
+            </div>
+          </div>
+
+          <!-- Expiring Soon -->
+          <div class="stat-card">
+            <div class="stat-icon-wrap icon-orange">
+              <i class="fa-regular fa-clock"></i>
+            </div>
+            <div class="stat-body">
+              <span class="stat-value" id="stat-expiring-soon">0</span>
+              <span class="stat-label" data-i18n="expiring_soon">رو به انقضا (۷ روز)</span>
+            </div>
+          </div>
+
+          <!-- Expired -->
+          <div class="stat-card">
+            <div class="stat-icon-wrap icon-danger">
+              <i class="fa-solid fa-calendar-xmark"></i>
+            </div>
+            <div class="stat-body">
+              <span class="stat-value" id="stat-expired-clients">0</span>
+              <span class="stat-label" data-i18n="expired">منقضی شده</span>
+            </div>
+          </div>
+
+          <!-- Quota Full -->
+          <div class="stat-card">
+            <div class="stat-icon-wrap icon-secondary">
+              <i class="fa-solid fa-ban"></i>
+            </div>
+            <div class="stat-body">
+              <span class="stat-value" id="stat-quota-full">0</span>
+              <span class="stat-label" data-i18n="quota_full">اتمام حجم</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="charts-grid">
+          <!-- Traffic Trend Chart -->
+          <div class="chart-card card">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title" data-i18n="traffic_trend">روند مصرف ترافیک (۷ روز گذشته)</h3>
+                <span class="card-subtitle" data-i18n="traffic_trend_sub">دانلود / آپلود زنده بر اساس هسته Xray</span>
+              </div>
+              <div class="chart-legend-custom">
+                <span class="legend-badge legend-down"><i class="fa-solid fa-circle"></i> <span data-i18n="download">دانلود</span></span>
+                <span class="legend-badge legend-up"><i class="fa-solid fa-circle"></i> <span data-i18n="upload">آپلود</span></span>
+              </div>
+            </div>
+            <div class="card-body chart-body">
+              <canvas id="trafficTrendChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Config Status Donut -->
+          <div class="chart-card card">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title" data-i18n="config_status_chart">وضعیت اکانت‌ها</h3>
+                <span class="card-subtitle" data-i18n="config_status_sub">توزیع وضعیت کلاینت‌ها</span>
+              </div>
+            </div>
+            <div class="card-body donut-chart-body">
+              <canvas id="configStatusChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Inbounds & Clients Summary -->
+        <div class="card recent-table-card">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title">اینباندهای فعال سیستم</h3>
+              <span class="card-subtitle">دسترسی سریع به اینباندها و مدیریت پورت‌ها</span>
+            </div>
+            <button class="btn btn-primary btn-sm" id="btn-quick-new-inbound">
+              <i class="fa-solid fa-plus"></i>
+              <span>افزودن اینباند جدید</span>
+            </button>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>توضیح / Remark</th>
+                  <th>پروتکل</th>
+                  <th>پورت</th>
+                  <th>شبکه / امنیت</th>
+                  <th>تعداد کاربر</th>
+                  <th>وضعیت</th>
+                  <th>عملیات</th>
+                </tr>
+              </thead>
+              <tbody id="dashboard-inbounds-body">
+                <tr><td colspan="7" class="text-center text-muted py-4">در حال بارگذاری...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- PAGE 2: Inbounds & Clients Management (Sanaei Style) -->
+      <section id="page-inbounds" class="page-view">
+        <div class="page-actions-bar">
+          <div class="search-filter-group">
+            <div class="search-box">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="text" id="inbound-search-input" placeholder="جستجو در اینباندها و کاربران...">
+            </div>
+          </div>
+          <div class="btn-group-flex">
+            <button class="btn btn-primary" id="btn-open-add-inbound-modal">
+              <i class="fa-solid fa-plus"></i>
+              <span>افزودن اینباند (Inbound)</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Inbound Cards Container -->
+        <div id="inbounds-container" class="inbounds-list">
+          <!-- Populated by JS -->
+        </div>
+      </section>
+
+      <!-- PAGE 3: Resellers (نمایندگی) -->
+      <section id="page-resellers" class="page-view">
+        <div class="page-actions-bar">
+          <div>
+            <h2 class="section-heading" data-i18n="reseller_management">مدیریت نمایندگان فروش</h2>
+            <p class="section-desc" data-i18n="reseller_desc">مدیریت حساب‌های نمایندگی، تعریف سهمیه حجم و تعداد کلاینت، برند اختصاصی</p>
+          </div>
+          <button class="btn btn-primary" id="btn-open-add-reseller-modal">
+            <i class="fa-solid fa-user-plus"></i>
+            <span data-i18n="create_reseller">افزودن نماینده جدید</span>
+          </button>
+        </div>
+
+        <div class="card">
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th data-i18n="username">نام کاربری</th>
+                  <th data-i18n="reseller_brand">برند / نام پنل</th>
+                  <th data-i18n="traffic_quota">سهمیه ترافیک</th>
+                  <th data-i18n="configs_quota">سقف کلاینت</th>
+                  <th data-i18n="created_configs_count">ساخته شده</th>
+                  <th data-i18n="account_expiry">انقضای حساب</th>
+                  <th data-i18n="sub_reseller_perm">دسترسی زیرنماینده</th>
+                  <th data-i18n="status">وضعیت</th>
+                  <th data-i18n="actions">عملیات</th>
+                </tr>
+              </thead>
+              <tbody id="resellers-table-body">
+                <tr><td colspan="9" class="text-center text-muted py-4">در حال بارگذاری...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- PAGE 4: Analytics -->
+      <section id="page-analytics" class="page-view">
+        <div class="card mb-4">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title" data-i18n="analytics_traffic_history">تاریخچه ترافیک مصرفی</h3>
+              <span class="card-subtitle" data-i18n="analytics_traffic_sub">مشاهده ریز مصرف آپلود و دانلود در بازه زمانی</span>
+            </div>
+            <div class="timeframe-buttons">
+              <button class="btn btn-outline btn-sm active" data-days="7">۷ روز</button>
+              <button class="btn btn-outline btn-sm" data-days="14">۱۴ روز</button>
+              <button class="btn btn-outline btn-sm" data-days="30">۳۰ روز</button>
+            </div>
+          </div>
+          <div class="card-body chart-body-large">
+            <canvas id="detailedAnalyticsChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Top Consuming Clients -->
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">پرمصرف‌ترین کاربران</h3>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>نام کاربر / Remark</th>
+                  <th>اینباند / پروتکل</th>
+                  <th>پورت</th>
+                  <th>ترافیک مصرفی</th>
+                  <th>سقف حجم</th>
+                  <th>وضعیت اتصال</th>
+                </tr>
+              </thead>
+              <tbody id="top-clients-table-body">
+                <!-- Populated by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- PAGE 5: Settings & SSL -->
+      <section id="page-settings" class="page-view">
+        <div class="settings-grid">
+          <!-- SSL / TLS Certificate Card -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title"><i class="fa-solid fa-shield-halved text-success"></i> <span data-i18n="ssl_cert_title">مدیریت سرتیفیکیت SSL / TLS</span></h3>
+                <span class="card-subtitle" data-i18n="ssl_cert_desc">صدور گواهینامه معتبر Let's Encrypt یا Self-Signed برای دامنه و اینباندها</span>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="cert-status-box mb-4" id="cert-status-box">
+                <div class="cert-status-indicator">
+                  <span class="cert-status-badge badge-secondary" id="cert-badge">در حال بررسی...</span>
+                </div>
+                <div class="cert-details" id="cert-details-text">
+                  <span>هیچ دامنه‌ای ثبت نشده است</span>
+                </div>
+              </div>
+
+              <form id="cert-issue-form" class="settings-form">
+                <div class="form-group">
+                  <label for="ssl-domain" data-i18n="domain_name">نام دامنه یا ساب‌دامنه (Domain / SNI)</label>
+                  <input type="text" id="ssl-domain" placeholder="vpn.yourdomain.com" required>
+                  <small class="form-hint" data-i18n="domain_hint">باید رکورد A این دامنه به آی‌پی این سرور اشاره کرده باشد</small>
+                </div>
+                <div class="form-group">
+                  <label for="ssl-email" data-i18n="ssl_email">ایمیل جهت صدور Let's Encrypt</label>
+                  <input type="email" id="ssl-email" placeholder="admin@yourdomain.com">
+                </div>
+                <div class="form-group">
+                  <label data-i18n="cert_type">نوع گواهی</label>
+                  <div class="radio-group">
+                    <label class="radio-label">
+                      <input type="radio" name="cert_type" value="letsencrypt" checked>
+                      <span>Let's Encrypt (رسمی و خودکار)</span>
+                    </label>
+                    <label class="radio-label">
+                      <input type="radio" name="cert_type" value="selfsigned">
+                      <span>Self-Signed (تست / بدون دامنه)</span>
+                    </label>
+                  </div>
+                </div>
+                <button type="submit" class="btn btn-success" id="btn-issue-cert">
+                  <i class="fa-solid fa-certificate"></i>
+                  <span data-i18n="issue_cert_btn">دریافت و نصب سرتیفیکیت</span>
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <!-- General System Settings Card -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title"><i class="fa-solid fa-sliders text-primary"></i> <span data-i18n="general_settings">تنظیمات کلی پنل</span></h3>
+                <span class="card-subtitle" data-i18n="general_settings_desc">تنظیم آدرس سابسکریپشن، نام پنل و مقادیر پیش‌فرض</span>
+              </div>
+            </div>
+            <div class="card-body">
+              <form id="general-settings-form" class="settings-form">
+                <div class="form-group">
+                  <label for="setting-panel-name" data-i18n="panel_title_label">عنوان پنل</label>
+                  <input type="text" id="setting-panel-name" placeholder="پنل پهلوی">
+                </div>
+                <div class="form-group">
+                  <label for="setting-sub-base" data-i18n="sub_base_url">آدرس پایه لینک سابسکریپشن (Sub URL)</label>
+                  <input type="text" id="setting-sub-base" placeholder="https://sub.yourdomain.com">
+                  <small class="form-hint" data-i18n="sub_base_hint">آدرسی که لینک‌های ساب بر پایه آن تولید می‌شوند</small>
+                </div>
+                <button type="submit" class="btn btn-primary" id="btn-save-settings">
+                  <i class="fa-solid fa-floppy-disk"></i>
+                  <span data-i18n="save_settings">ذخیره تنظیمات</span>
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <!-- Change Password Card -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title"><i class="fa-solid fa-key text-warning"></i> <span data-i18n="change_password">تغییر رمز عبور</span></h3>
+            </div>
+            <div class="card-body">
+              <form id="change-password-form" class="settings-form">
+                <div class="form-group">
+                  <label for="cp-current" data-i18n="current_password">رمز عبور فعلی</label>
+                  <input type="password" id="cp-current" required>
+                </div>
+                <div class="form-group">
+                  <label for="cp-new" data-i18n="new_password">رمز عبور جدید</label>
+                  <input type="password" id="cp-new" required minlength="6">
+                </div>
+                <button type="submit" class="btn btn-warning">
+                  <i class="fa-solid fa-lock"></i>
+                  <span data-i18n="update_password">بروزرسانی رمز</span>
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- MODAL: Create / Edit Inbound (Full Protocol & Sanaei Features) -->
+  <div id="modal-inbound" class="modal-backdrop hidden">
+    <div class="modal-box modal-lg">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modal-inbound-title">افزودن اینباند جدید</h3>
+        <button class="modal-close" id="btn-close-inbound-modal">&times;</button>
+      </div>
+      <form id="form-inbound-save">
+        <input type="hidden" id="inbound-edit-id">
+        <div class="modal-body">
+          <div class="form-grid">
+            <!-- Remark -->
+            <div class="form-group col-span-2">
+              <label for="inb-remark">نام اینباند / توضیح (Remark)</label>
+              <input type="text" id="inb-remark" placeholder="مثال: VLESS-REALITY-GERMANY" required>
+            </div>
+
+            <!-- Protocol Manual Select -->
+            <div class="form-group">
+              <label for="inb-protocol">پروتکل (Protocol)</label>
+              <select id="inb-protocol" class="form-select" required>
+                <option value="vless" selected>VLESS (پیشرفته)</option>
+                <option value="vmess">VMess</option>
+                <option value="trojan">Trojan</option>
+                <option value="shadowsocks">Shadowsocks (2022 / AEAD)</option>
+                <option value="dokodemo-door">Dokodemo-door (Port Forward)</option>
+              </select>
+            </div>
+
+            <!-- Port with Random Port Generator -->
+            <div class="form-group">
+              <label for="inb-port">پورت ورودی (Port)</label>
+              <div class="input-with-action">
+                <input type="number" id="inb-port" min="1" max="65535" value="443" required>
+                <button type="button" class="btn btn-outline btn-sm" id="btn-generate-random-port" title="تولید پورت رندوم">
+                  <i class="fa-solid fa-dice"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Network Transmission -->
+            <div class="form-group">
+              <label for="inb-network">نوع شبکه (Transmission Network)</label>
+              <select id="inb-network" class="form-select">
+                <option value="tcp" selected>TCP</option>
+                <option value="ws">WebSocket (WS)</option>
+                <option value="grpc">gRPC</option>
+                <option value="httpupgrade">HTTPUpgrade</option>
+                <option value="splithttp">SplitHTTP (Xray 1.8+)</option>
+              </select>
+            </div>
+
+            <!-- Security Mode -->
+            <div class="form-group">
+              <label for="inb-security">امنیت (Security)</label>
+              <select id="inb-security" class="form-select">
+                <option value="reality" selected>Reality (ضدفیلتر فوق پیشرفته)</option>
+                <option value="tls">TLS (سرتیفیکیت دامنه)</option>
+                <option value="none">None (ساده بدون رمزگذاری)</option>
+              </select>
+            </div>
+
+            <!-- Reality Specific Section -->
+            <div id="section-reality" class="form-group col-span-2 highlight-reality-box">
+              <div class="flex-between mb-2">
+                <strong class="text-sm"><i class="fa-solid fa-fingerprint text-success"></i> تنظیمات Reality</strong>
+                <button type="button" class="btn btn-outline btn-xs" id="btn-generate-reality-keys">
+                  <i class="fa-solid fa-arrows-rotate"></i> تولید کلیدهای جدید (x25519)
+                </button>
+              </div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="inb-real-dest">مقصد / Target (Dest:Port)</label>
+                  <input type="text" id="inb-real-dest" value="www.microsoft.com:443">
+                </div>
+                <div class="form-group">
+                  <label for="inb-real-sni">Server Names / SNI</label>
+                  <input type="text" id="inb-real-sni" value="www.microsoft.com,microsoft.com">
+                </div>
+                <div class="form-group">
+                  <label for="inb-real-pbk">Public Key</label>
+                  <input type="text" id="inb-real-pbk" class="font-mono text-xs" required>
+                </div>
+                <div class="form-group">
+                  <label for="inb-real-pvk">Private Key</label>
+                  <input type="text" id="inb-real-pvk" class="font-mono text-xs" required>
+                </div>
+                <div class="form-group">
+                  <label for="inb-real-sid">Short ID</label>
+                  <input type="text" id="inb-real-sid" class="font-mono text-xs" value="0123456789abcdef">
+                </div>
+                <div class="form-group">
+                  <label for="inb-real-fp">Fingerprint</label>
+                  <select id="inb-real-fp" class="form-select">
+                    <option value="chrome" selected>Chrome</option>
+                    <option value="firefox">Firefox</option>
+                    <option value="safari">Safari</option>
+                    <option value="ios">iOS</option>
+                    <option value="random">Random</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- WebSocket Specific Section -->
+            <div id="section-ws" class="form-group col-span-2" style="display:none;">
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="inb-ws-path">WebSocket Path</label>
+                  <input type="text" id="inb-ws-path" value="/" placeholder="/">
+                </div>
+                <div class="form-group">
+                  <label for="inb-ws-host">Host Header</label>
+                  <input type="text" id="inb-ws-host" placeholder="domain.com">
+                </div>
+              </div>
+            </div>
+
+            <!-- Shadowsocks Specific Section -->
+            <div id="section-ss" class="form-group col-span-2" style="display:none;">
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="inb-ss-method">روش رمزنگاری (Encryption Method)</label>
+                  <select id="inb-ss-method" class="form-select">
+                    <option value="2022-blake3-aes-128-gcm" selected>2022-blake3-aes-128-gcm (جدید)</option>
+                    <option value="2022-blake3-aes-256-gcm">2022-blake3-aes-256-gcm</option>
+                    <option value="aes-128-gcm">aes-128-gcm</option>
+                    <option value="aes-256-gcm">aes-256-gcm</option>
+                    <option value="chacha20-poly1305">chacha20-poly1305</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="inb-ss-password">رمز اینباند (Password / Key)</label>
+                  <input type="text" id="inb-ss-password" class="font-mono text-xs">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" id="btn-cancel-inbound-modal" data-i18n="cancel">انصراف</button>
+          <button type="submit" class="btn btn-primary" id="btn-save-inbound-submit">
+            <i class="fa-solid fa-check"></i>
+            <span>ذخیره و ایجاد اینباند</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Add Client to Inbound -->
+  <div id="modal-add-client" class="modal-backdrop hidden">
+    <div class="modal-box modal-md">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modal-add-client-title">افزودن کاربر به اینباند</h3>
+        <button class="modal-close" id="btn-close-client-modal">&times;</button>
+      </div>
+      <form id="form-client-save">
+        <input type="hidden" id="client-inbound-id">
+        <input type="hidden" id="client-edit-id">
+        <div class="modal-body">
+          <div class="form-grid">
+            <div class="form-group col-span-2">
+              <label for="cli-email">نام کاربر / شناسه (Email / Remark)</label>
+              <input type="text" id="cli-email" placeholder="مثال: Reza-01" required>
+            </div>
+            <div class="form-group col-span-2">
+              <label for="cli-uuid">UUID / شناسه یکتا</label>
+              <div class="input-with-action">
+                <input type="text" id="cli-uuid" class="font-mono text-xs" required>
+                <button type="button" class="btn btn-outline btn-sm" id="btn-generate-client-uuid" title="تولید UUID جدید">
+                  <i class="fa-solid fa-arrows-rotate"></i>
+                </button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="cli-traffic">سقف ترافیک (GB - ۰ = نامحدود)</label>
+              <input type="number" id="cli-traffic" min="0" step="0.5" value="30">
+            </div>
+            <div class="form-group">
+              <label for="cli-duration">مدت زمان اعتبار (روز)</label>
+              <input type="number" id="cli-duration" min="1" value="30">
+            </div>
+            <div class="form-group col-span-2 highlight-box">
+              <div class="toggle-wrap">
+                <label class="switch">
+                  <input type="checkbox" id="cli-start-first-use" checked>
+                  <span class="slider round"></span>
+                </label>
+                <div class="toggle-label-group">
+                  <strong>شروع زمان پس از اولین اتصال (Start After First Use)</strong>
+                  <p class="form-hint">شمارش روزهای انقضا تا وقتی که کاربر اولین اتصال را برقرار نکند، شروع نخواهد شد.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" id="btn-cancel-client-modal">انصراف</button>
+          <button type="submit" class="btn btn-primary">
+            <i class="fa-solid fa-check"></i>
+            <span>ذخیره کاربر</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Show Links & QR Code -->
+  <div id="modal-qr" class="modal-backdrop hidden">
+    <div class="modal-box modal-md">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modal-qr-title">لینک و بارکد اتصال</h3>
+        <button class="modal-close" id="btn-close-qr-modal">&times;</button>
+      </div>
+      <div class="modal-body text-center">
+        <div class="qr-wrap">
+          <div id="qrcode-container" class="qrcode-box"></div>
+        </div>
+
+        <div class="sub-link-section mt-4">
+          <label class="text-sm text-muted font-bold block mb-1">لینک سابسکریپشن هوشمند (Auto Sub)</label>
+          <div class="copy-input-group">
+            <input type="text" id="modal-sub-link-input" readonly class="text-xs font-mono">
+            <button class="btn btn-primary btn-sm" id="btn-copy-sub-link" title="کپی">
+              <i class="fa-solid fa-copy"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="direct-link-section mt-3">
+          <label class="text-sm text-muted font-bold block mb-1">لینک مستقیم کانفیگ (Direct URI)</label>
+          <div class="copy-input-group">
+            <input type="text" id="modal-direct-link-input" readonly class="text-xs font-mono">
+            <button class="btn btn-outline btn-sm" id="btn-copy-direct-link" title="کپی">
+              <i class="fa-solid fa-copy"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="direct-link-section mt-3">
+          <label class="text-sm text-muted font-bold block mb-1">لینک Clash</label>
+          <div class="copy-input-group">
+            <input type="text" id="modal-clash-link-input" readonly class="text-xs font-mono">
+            <button class="btn btn-outline btn-sm" id="btn-copy-clash-link" title="کپی">
+              <i class="fa-solid fa-copy"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer justify-center">
+        <button type="button" class="btn btn-outline" id="btn-close-qr-modal-bottom">بستن</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Add / Edit Reseller -->
+  <div id="modal-reseller" class="modal-backdrop hidden">
+    <div class="modal-box modal-md">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modal-reseller-title">تعریف نماینده فروش جدید</h3>
+        <button class="modal-close" id="btn-close-reseller-modal">&times;</button>
+      </div>
+      <form id="form-reseller-save">
+        <input type="hidden" id="reseller-edit-id">
+        <div class="modal-body">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="reseller-username">نام کاربری نماینده</label>
+              <input type="text" id="reseller-username" required>
+            </div>
+            <div class="form-group">
+              <label for="reseller-password">رمز عبور ورود</label>
+              <input type="password" id="reseller-password" minlength="6" placeholder="حداقل ۶ کاراکتر">
+            </div>
+            <div class="form-group">
+              <label for="reseller-traffic-quota">سقف ترافیک کل (GB)</label>
+              <input type="number" id="reseller-traffic-quota" min="1" value="100" required>
+            </div>
+            <div class="form-group">
+              <label for="reseller-max-configs">حداکثر تعداد کلاینت مجاز</label>
+              <input type="number" id="reseller-max-configs" min="1" value="30" required>
+            </div>
+            <div class="form-group">
+              <label for="reseller-panel-name">نام برند اختصاصی نماینده</label>
+              <input type="text" id="reseller-panel-name" placeholder="مثال: آریا وی‌پی‌ان">
+            </div>
+            <div class="form-group">
+              <label for="reseller-expiry">تاریخ انقضای حساب نماینده</label>
+              <input type="date" id="reseller-expiry">
+            </div>
+            <div class="form-group col-span-2">
+              <label class="checkbox-label">
+                <input type="checkbox" id="reseller-can-sub">
+                <span>مجاز به تعریف زیرنماینده (Sub-Reseller) باشد</span>
+              </label>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" id="btn-cancel-reseller-modal">انصراف</button>
+          <button type="submit" class="btn btn-primary">
+            <i class="fa-solid fa-check"></i>
+            <span>ذخیره نماینده</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="/js/app.js"></script>
+  <script src="/js/dashboard.js"></script>
+  <script src="/js/inbounds.js"></script>
+  <script src="/js/reseller.js"></script>
+  <script src="/js/settings.js"></script>
+</body>
+</html>
