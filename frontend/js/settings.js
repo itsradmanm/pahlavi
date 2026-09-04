@@ -15,7 +15,8 @@ async function loadSettings() {
     if (settings.panel_name) document.getElementById('setting-panel-name').value = settings.panel_name;
     if (settings.sub_base_url) document.getElementById('setting-sub-base').value = settings.sub_base_url;
     if (settings.tls_domain) document.getElementById('ssl-domain').value = settings.tls_domain;
-    if (settings.tls_email) document.getElementById('ssl-email').value = settings.tls_email;
+    if (settings.telegram_bot_token) document.getElementById('tg-bot-token').value = settings.telegram_bot_token;
+    if (settings.telegram_admin_id) document.getElementById('tg-admin-id').value = settings.telegram_admin_id;
 
     renderCertStatus(certStatus);
   } catch (err) {
@@ -56,16 +57,19 @@ async function handleCertSubmit(e) {
   btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> در حال صدور گواهی و احراز هویت دامنه...`;
 
   const domain = document.getElementById('ssl-domain').value.trim();
-  const email = document.getElementById('ssl-email').value.trim();
   const certType = document.querySelector('input[name="cert_type"]:checked')?.value || 'letsencrypt';
 
   try {
-    await apiFetch('/api/settings/certificate', {
+    const res = await apiFetch('/api/settings/certificate', {
       method: 'POST',
-      body: JSON.stringify({ domain, email, type: certType })
+      body: JSON.stringify({ domain, type: certType })
     });
     
-    showToast('سرتیفیکیت SSL با موفقیت صادر و روی سرور نصب شد!', 'success');
+    if (res.is_fallback) {
+      showToast(res.message, 'warning');
+    } else {
+      showToast('سرتیفیکیت SSL با موفقیت صادر و فعال شد!', 'success');
+    }
     loadSettings();
   } catch (err) {
     console.error(err);
@@ -96,6 +100,87 @@ async function handleGeneralSettingsSubmit(e) {
   } catch (err) {
     console.error(err);
   }
+}
+
+async function handleTelegramSettingsSubmit(e) {
+  e.preventDefault();
+  const payload = {
+    telegram_bot_token: document.getElementById('tg-bot-token').value.trim(),
+    telegram_admin_id: document.getElementById('tg-admin-id').value.trim()
+  };
+
+  try {
+    await apiFetch('/api/settings', {
+      method: 'PUT',
+      body: JSON.stringify(payload)
+    });
+    showToast('تنظیمات تلگرام با موفقیت ذخیره شد', 'success');
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+async function handleTestTelegram() {
+  const token = document.getElementById('tg-bot-token').value.trim();
+  const chatId = document.getElementById('tg-admin-id').value.trim();
+
+  if (!token || !chatId) {
+    return showToast('لطفا توکن ربات و Chat ID را وارد کنید', 'warning');
+  }
+
+  try {
+    await apiFetch('/api/settings/telegram/test', {
+      method: 'POST',
+      body: JSON.stringify({ token, chatId })
+    });
+    showToast('پیام آزمایشی به تلگرام ارسال شد!', 'success');
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+async function handleRestartCore() {
+  if (!confirm('آیا از ریستارت سرویس Xray-core اطمینان دارید؟')) return;
+  try {
+    await apiFetch('/api/settings/restart-core', { method: 'POST' });
+    showToast('سرویس Xray-core با موفقیت ریستارت شد', 'success');
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+async function handleRestartPanel() {
+  if (!confirm('آیا از ریستارت وب‌سرور پنل اطمینان دارید؟')) return;
+  try {
+    await apiFetch('/api/settings/restart-panel', { method: 'POST' });
+    showToast('پنل در حال ریستارت است...', 'info');
+    setTimeout(() => location.reload(), 3000);
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+async function handleRestoreBackup() {
+  const fileInput = document.getElementById('backup-file-input');
+  if (!fileInput.files || !fileInput.files[0]) {
+    return showToast('لطفا ابتدا فایل بکاپ JSON را انتخاب کنید', 'warning');
+  }
+
+  const reader = new FileReader();
+  reader.onload = async (event) => {
+    try {
+      const backupJson = JSON.parse(event.target.result);
+      await apiFetch('/api/settings/restore', {
+        method: 'POST',
+        body: JSON.stringify(backupJson)
+      });
+      showToast('بکاپ با موفقیت بازیابی شد!', 'success');
+      setTimeout(() => location.reload(), 1500);
+    } catch (e) {
+      showToast('فایل بکاپ نامعتبر است: ' + e.message, 'error');
+    }
+  };
+  reader.readAsText(fileInput.files[0]);
 }
 
 async function handleChangePasswordSubmit(e) {
@@ -209,6 +294,11 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('cert-issue-form')?.addEventListener('submit', handleCertSubmit);
   document.getElementById('general-settings-form')?.addEventListener('submit', handleGeneralSettingsSubmit);
   document.getElementById('change-password-form')?.addEventListener('submit', handleChangePasswordSubmit);
+  document.getElementById('telegram-settings-form')?.addEventListener('submit', handleTelegramSettingsSubmit);
+  document.getElementById('btn-test-telegram')?.addEventListener('click', handleTestTelegram);
+  document.getElementById('btn-restart-core')?.addEventListener('click', handleRestartCore);
+  document.getElementById('btn-restart-panel')?.addEventListener('click', handleRestartPanel);
+  document.getElementById('btn-restore-backup')?.addEventListener('click', handleRestoreBackup);
 
   document.querySelectorAll('.timeframe-buttons button').forEach(btn => {
     btn.addEventListener('click', () => {

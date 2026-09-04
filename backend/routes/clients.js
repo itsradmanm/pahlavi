@@ -221,6 +221,79 @@ router.post('/:id/renew', authMiddleware, async (req, res, next) => {
   }
 });
 
+// POST /api/clients/batch-delete
+router.post('/batch-delete', authMiddleware, async (req, res, next) => {
+  try {
+    const { ids = [] } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) return res.status(400).json({ error: 'No client IDs provided' });
+
+    await query(`
+      DELETE FROM clients WHERE id = ANY($1::int[]) ${req.user.role === 'reseller' ? 'AND created_by = ' + req.user.id : ''}
+    `, [ids]);
+
+    await applyConfigToXray();
+    res.json({ message: `${ids.length} clients deleted successfully` });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /api/clients/batch-reset-traffic
+router.post('/batch-reset-traffic', authMiddleware, async (req, res, next) => {
+  try {
+    const { ids = [] } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) return res.status(400).json({ error: 'No client IDs provided' });
+
+    await query(`
+      UPDATE clients SET traffic_up_bytes = 0, traffic_down_bytes = 0, traffic_used_gb = 0, enable = true
+      WHERE id = ANY($1::int[]) ${req.user.role === 'reseller' ? 'AND created_by = ' + req.user.id : ''}
+    `, [ids]);
+
+    await applyConfigToXray();
+    res.json({ message: `Traffic reset for ${ids.length} clients` });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /api/clients/batch-toggle
+router.post('/batch-toggle', authMiddleware, async (req, res, next) => {
+  try {
+    const { ids = [], enable = true } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) return res.status(400).json({ error: 'No client IDs provided' });
+
+    await query(`
+      UPDATE clients SET enable = $1
+      WHERE id = ANY($2::int[]) ${req.user.role === 'reseller' ? 'AND created_by = ' + req.user.id : ''}
+    `, [enable, ids]);
+
+    await applyConfigToXray();
+    res.json({ message: `Status updated for ${ids.length} clients` });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /api/clients/batch-renew
+router.post('/batch-renew', authMiddleware, async (req, res, next) => {
+  try {
+    const { ids = [], days = 30 } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) return res.status(400).json({ error: 'No client IDs provided' });
+
+    await query(`
+      UPDATE clients 
+      SET expires_at = GREATEST(NOW(), COALESCE(expires_at, NOW())) + ($1 || ' days')::interval,
+          enable = true
+      WHERE id = ANY($2::int[]) ${req.user.role === 'reseller' ? 'AND created_by = ' + req.user.id : ''}
+    `, [days, ids]);
+
+    await applyConfigToXray();
+    res.json({ message: `Renewed ${ids.length} clients by ${days} days` });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // ========== Helper: Generate Direct URI for All Protocols ==========
 
 function generateClientProtocolLink(c, host) {

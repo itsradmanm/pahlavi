@@ -61,8 +61,8 @@ echo -e "${GREEN}✓ OS: $OS $VER ($ARCH)${NC}\n"
 # Step 2: Interactive Configuration
 echo -e "${CYAN}${BOLD}--- Panel Configuration ---${NC}"
 
-read -p "$(echo -e "${YELLOW}Web Panel Port [Default 3000]: ${NC}")" PANEL_PORT
-PANEL_PORT=${PANEL_PORT:-3000}
+read -p "$(echo -e "${YELLOW}Web Panel Port [Default 2054]: ${NC}")" PANEL_PORT
+PANEL_PORT=${PANEL_PORT:-2054}
 
 read -p "$(echo -e "${YELLOW}Admin Username [Default admin]: ${NC}")" ADMIN_USER
 ADMIN_USER=${ADMIN_USER:-admin}
@@ -74,14 +74,9 @@ DEFAULT_IP=$(curl -s4 ifconfig.me || curl -s4 api.ipify.org || curl -s4 icanhazi
 read -p "$(echo -e "${YELLOW}Server Domain or Public IP [Default $DEFAULT_IP]: ${NC}")" SERVER_HOST
 SERVER_HOST=${SERVER_HOST:-$DEFAULT_IP}
 
-echo -e "\n${YELLOW}Would you like to issue a free Let's Encrypt SSL Certificate?${NC}"
-read -p "$(echo -e "${YELLOW}(y/n) [Default n]: ${NC}")" ENABLE_SSL
-ENABLE_SSL=${ENABLE_SSL:-n}
-
-SSL_EMAIL=""
-if [[ "$ENABLE_SSL" =~ ^[Yy]$ ]]; then
-    read -p "$(echo -e "${YELLOW}Email for Let's Encrypt renewal alerts: ${NC}")" SSL_EMAIL
-fi
+echo -e "\n${YELLOW}Would you like to enable SSL (HTTPS) for Web Panel?${NC}"
+read -p "$(echo -e "${YELLOW}(y/n) [Default y]: ${NC}")" ENABLE_SSL
+ENABLE_SSL=${ENABLE_SSL:-y}
 
 DB_NAME="pahlavy"
 DB_USER="pahlavy"
@@ -91,7 +86,8 @@ echo -e "\n${GREEN}Configuration Summary:${NC}"
 echo -e "  - Web Port:       ${CYAN}$PANEL_PORT${NC}"
 echo -e "  - Admin User:     ${CYAN}$ADMIN_USER${NC}"
 echo -e "  - Admin Password: ${CYAN}$ADMIN_PASS${NC}"
-echo -e "  - Host / Domain:  ${CYAN}$SERVER_HOST${NC}\n"
+echo -e "  - Host / Domain:  ${CYAN}$SERVER_HOST${NC}"
+echo -e "  - SSL Enabled:    ${CYAN}$ENABLE_SSL (Zero-Email Automated)${NC}\n"
 
 read -p "$(echo -e "${BOLD}Are you sure you want to proceed with installation? (y/n) [y]: ${NC}")" CONFIRM
 CONFIRM=${CONFIRM:-y}
@@ -216,11 +212,7 @@ if [[ "$ENABLE_SSL" =~ ^[Yy]$ ]] && [ -n "$SERVER_HOST" ] && [ "$SERVER_HOST" !=
     systemctl stop nginx 2>/dev/null || true
     systemctl stop apache2 2>/dev/null || true
     
-    if [ -n "$SSL_EMAIL" ]; then
-        certbot certonly --standalone --non-interactive --agree-tos --email "$SSL_EMAIL" -d "$SERVER_HOST" 2>/dev/null || true
-    else
-        certbot certonly --standalone --non-interactive --agree-tos --register-unsafely-without-email -d "$SERVER_HOST" 2>/dev/null || true
-    fi
+    certbot certonly --standalone --non-interactive --agree-tos --register-unsafely-without-email -d "$SERVER_HOST" 2>/dev/null || true
 
     mkdir -p /etc/pahlavy/certs/active /etc/pahlavy/certs/"$SERVER_HOST"
 

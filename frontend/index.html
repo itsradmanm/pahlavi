@@ -250,6 +250,57 @@
           </div>
         </div>
 
+        <!-- Live System Resources Bar -->
+        <div class="system-resources-grid mb-4">
+          <div class="resource-card">
+            <div class="res-icon icon-primary"><i class="fa-solid fa-microchip"></i></div>
+            <div class="res-info">
+              <span class="res-label">CPU Usage</span>
+              <div class="res-val-wrap">
+                <strong id="live-cpu-percent">0%</strong>
+                <span class="text-xs text-muted" id="live-cpu-cores">Core</span>
+              </div>
+              <div class="mini-progress-bar"><div id="live-cpu-bar" class="bg-primary" style="width: 0%"></div></div>
+            </div>
+          </div>
+
+          <div class="resource-card">
+            <div class="res-icon icon-success"><i class="fa-solid fa-memory"></i></div>
+            <div class="res-info">
+              <span class="res-label">Memory (RAM)</span>
+              <div class="res-val-wrap">
+                <strong id="live-ram-text">0 / 0 GB</strong>
+                <span class="text-xs text-muted" id="live-ram-percent">0%</span>
+              </div>
+              <div class="mini-progress-bar"><div id="live-ram-bar" class="bg-success" style="width: 0%"></div></div>
+            </div>
+          </div>
+
+          <div class="resource-card">
+            <div class="res-icon icon-orange"><i class="fa-solid fa-hard-drive"></i></div>
+            <div class="res-info">
+              <span class="res-label">Disk Storage</span>
+              <div class="res-val-wrap">
+                <strong id="live-disk-text">0 / 0 GB</strong>
+                <span class="text-xs text-muted" id="live-disk-percent">0%</span>
+              </div>
+              <div class="mini-progress-bar"><div id="live-disk-bar" class="bg-orange" style="width: 0%"></div></div>
+            </div>
+          </div>
+
+          <div class="resource-card">
+            <div class="res-icon icon-info"><i class="fa-solid fa-stopwatch"></i></div>
+            <div class="res-info">
+              <span class="res-label">Server Uptime</span>
+              <div class="res-val-wrap">
+                <strong id="live-uptime-text">0h 0m</strong>
+                <span class="text-xs text-success">● Active</span>
+              </div>
+              <div class="text-xs text-muted mt-1" id="live-server-load">Load: 0.00</div>
+            </div>
+          </div>
+        </div>
+
         <!-- Charts Row -->
         <div class="charts-grid">
           <!-- Traffic Trend Chart -->
@@ -423,12 +474,12 @@
       <!-- PAGE 5: Settings & SSL -->
       <section id="page-settings" class="page-view">
         <div class="settings-grid">
-          <!-- SSL / TLS Certificate Card -->
+          <!-- SSL / TLS Certificate Card (Zero-Email Sanaei 3X-UI Style) -->
           <div class="card">
             <div class="card-header">
               <div>
                 <h3 class="card-title"><i class="fa-solid fa-shield-halved text-success"></i> <span data-i18n="ssl_cert_title">SSL / TLS Certificate Management</span></h3>
-                <span class="card-subtitle" data-i18n="ssl_cert_desc">Issue verified Let's Encrypt or Self-Signed SSL certs for domains & inbounds</span>
+                <span class="card-subtitle" data-i18n="ssl_cert_desc">Issue verified Let's Encrypt or Self-Signed SSL certs (Zero Email Required)</span>
               </div>
             </div>
             <div class="card-body">
@@ -443,24 +494,20 @@
 
               <form id="cert-issue-form" class="settings-form">
                 <div class="form-group">
-                  <label for="ssl-domain" data-i18n="domain_name">Domain or Subdomain (SNI)</label>
+                  <label for="ssl-domain" data-i18n="domain_name">Domain Name or Server IP</label>
                   <input type="text" id="ssl-domain" placeholder="vpn.yourdomain.com" required>
-                  <small class="form-hint" data-i18n="domain_hint">Ensure DNS A record points to this server IP address</small>
-                </div>
-                <div class="form-group">
-                  <label for="ssl-email" data-i18n="ssl_email">Email for Let's Encrypt</label>
-                  <input type="email" id="ssl-email" placeholder="admin@yourdomain.com">
+                  <small class="form-hint" data-i18n="domain_hint">Make sure Cloudflare proxy (Orange Cloud) is set to DNS Only (Grey Cloud)</small>
                 </div>
                 <div class="form-group">
                   <label data-i18n="cert_type">Certificate Type</label>
                   <div class="radio-group">
                     <label class="radio-label">
                       <input type="radio" name="cert_type" value="letsencrypt" checked>
-                      <span>Let's Encrypt (Automated & Official)</span>
+                      <span>Let's Encrypt (Automated & Zero-Email)</span>
                     </label>
                     <label class="radio-label">
                       <input type="radio" name="cert_type" value="selfsigned">
-                      <span>Self-Signed (Testing / Direct IP)</span>
+                      <span>Self-Signed (Instant / Works without DNS)</span>
                     </label>
                   </div>
                 </div>
@@ -488,13 +535,80 @@
                 </div>
                 <div class="form-group">
                   <label for="setting-sub-base" data-i18n="sub_base_url">Subscription Base URL (Sub URL)</label>
-                  <input type="text" id="setting-sub-base" placeholder="http://yourdomain.com:2054">
+                  <input type="text" id="setting-sub-base" placeholder="https://yourdomain.com:2054">
                   <small class="form-hint" data-i18n="sub_base_hint">Base address used to generate client subscription URLs</small>
                 </div>
                 <button type="submit" class="btn btn-primary" id="btn-save-settings">
                   <i class="fa-solid fa-floppy-disk"></i>
                   <span data-i18n="save_settings">Save Settings</span>
                 </button>
+              </form>
+            </div>
+          </div>
+
+          <!-- Xray-Core & Service Controls Card -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title"><i class="fa-solid fa-server text-info"></i> Core & Service Management</h3>
+            </div>
+            <div class="card-body">
+              <p class="text-sm text-muted mb-4">Restart Xray-core proxy engine or reload panel web server.</p>
+              <div class="btn-group-wrap" style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <button type="button" class="btn btn-outline" id="btn-restart-core">
+                  <i class="fa-solid fa-rotate"></i> Restart Xray Core
+                </button>
+                <button type="button" class="btn btn-outline" id="btn-restart-panel">
+                  <i class="fa-solid fa-power-off"></i> Restart Panel
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Database Backup & Restore Card -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title"><i class="fa-solid fa-database text-purple"></i> Database Backup & Restore</h3>
+            </div>
+            <div class="card-body">
+              <p class="text-sm text-muted mb-3">Export all inbounds, clients, and settings or restore from file.</p>
+              <div class="backup-actions" style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px;">
+                <a href="/api/settings/backup" class="btn btn-primary" download id="btn-download-backup">
+                  <i class="fa-solid fa-download"></i> Download Backup JSON
+                </a>
+              </div>
+              <div class="restore-box" style="border-top: 1px solid var(--border-color); padding-top: 12px;">
+                <label class="form-hint mb-2">Upload Backup JSON to Restore:</label>
+                <input type="file" id="backup-file-input" accept=".json" class="form-control" style="margin-bottom: 8px;">
+                <button type="button" class="btn btn-outline btn-sm" id="btn-restore-backup">
+                  <i class="fa-solid fa-upload"></i> Restore Backup
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Telegram Bot Alerts Card -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title"><i class="fa-brands fa-telegram text-primary"></i> Telegram Bot Notifications</h3>
+            </div>
+            <div class="card-body">
+              <form id="telegram-settings-form" class="settings-form">
+                <div class="form-group">
+                  <label for="tg-bot-token">Telegram Bot Token</label>
+                  <input type="text" id="tg-bot-token" placeholder="123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ">
+                </div>
+                <div class="form-group">
+                  <label for="tg-admin-id">Admin Chat ID</label>
+                  <input type="text" id="tg-admin-id" placeholder="123456789">
+                </div>
+                <div style="display: flex; gap: 10px;">
+                  <button type="submit" class="btn btn-primary">
+                    <i class="fa-solid fa-floppy-disk"></i> Save Telegram
+                  </button>
+                  <button type="button" class="btn btn-outline" id="btn-test-telegram">
+                    <i class="fa-solid fa-paper-plane"></i> Test Notification
+                  </button>
+                </div>
               </form>
             </div>
           </div>

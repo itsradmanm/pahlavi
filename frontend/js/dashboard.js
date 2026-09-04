@@ -7,18 +7,69 @@ let configStatusChartInstance = null;
 
 async function loadDashboard() {
   try {
-    const [overviewData, trafficData, inboundsData] = await Promise.all([
+    const [overviewData, trafficData, inboundsData, systemData] = await Promise.all([
       apiFetch('/api/analytics/overview'),
       apiFetch('/api/analytics/traffic?days=7'),
-      apiFetch('/api/inbounds')
+      apiFetch('/api/inbounds'),
+      apiFetch('/api/analytics/system').catch(() => null)
     ]);
 
     renderDashboardStats(overviewData);
+    if (systemData) renderSystemMetrics(systemData);
     renderTrafficTrendChart(trafficData);
     renderConfigStatusChart(overviewData.stats);
     renderDashboardInboundsTable(inboundsData);
   } catch (err) {
     console.error('Failed to load dashboard:', err);
+  }
+}
+
+function renderSystemMetrics(sys) {
+  if (!sys) return;
+
+  // CPU
+  const cpuPercent = sys.cpu?.percent || 0;
+  const cpuElem = document.getElementById('live-cpu-percent');
+  const cpuBar = document.getElementById('live-cpu-bar');
+  const cpuCores = document.getElementById('live-cpu-cores');
+  if (cpuElem) cpuElem.textContent = `${cpuPercent}%`;
+  if (cpuBar) cpuBar.style.width = `${cpuPercent}%`;
+  if (cpuCores) cpuCores.textContent = `${sys.cpu?.cores || 1} Cores`;
+
+  // RAM
+  const ramUsed = sys.memory?.used_gb || 0;
+  const ramTotal = sys.memory?.total_gb || 1;
+  const ramPercent = sys.memory?.percent || 0;
+  const ramElem = document.getElementById('live-ram-text');
+  const ramPercentElem = document.getElementById('live-ram-percent');
+  const ramBar = document.getElementById('live-ram-bar');
+  if (ramElem) ramElem.textContent = `${ramUsed} / ${ramTotal} GB`;
+  if (ramPercentElem) ramPercentElem.textContent = `${ramPercent}%`;
+  if (ramBar) ramBar.style.width = `${ramPercent}%`;
+
+  // Disk
+  const diskUsed = sys.disk?.used_gb || 0;
+  const diskTotal = sys.disk?.total_gb || 1;
+  const diskPercent = sys.disk?.percent || 0;
+  const diskElem = document.getElementById('live-disk-text');
+  const diskPercentElem = document.getElementById('live-disk-percent');
+  const diskBar = document.getElementById('live-disk-bar');
+  if (diskElem) diskElem.textContent = `${diskUsed} / ${diskTotal} GB`;
+  if (diskPercentElem) diskPercentElem.textContent = `${diskPercent}%`;
+  if (diskBar) diskBar.style.width = `${diskPercent}%`;
+
+  // Uptime
+  const uptimeSec = sys.uptime_seconds || 0;
+  const days = Math.floor(uptimeSec / (3600 * 24));
+  const hours = Math.floor((uptimeSec % (3600 * 24)) / 3600);
+  const mins = Math.floor((uptimeSec % 3600) / 60);
+  const uptimeElem = document.getElementById('live-uptime-text');
+  const loadElem = document.getElementById('live-server-load');
+  if (uptimeElem) {
+    uptimeElem.textContent = days > 0 ? `${days}d ${hours}h ${mins}m` : `${hours}h ${mins}m`;
+  }
+  if (loadElem && sys.cpu?.loadAvg) {
+    loadElem.textContent = `Load: ${sys.cpu.loadAvg[0]?.toFixed(2) || '0.00'}`;
   }
 }
 

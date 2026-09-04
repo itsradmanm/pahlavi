@@ -2,18 +2,18 @@ const { execSync, exec } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-async function generateCertificate({ domain, email, type = 'letsencrypt' }) {
+async function generateCertificate({ domain, type = 'letsencrypt' }) {
   if (type === 'selfsigned') {
     return generateSelfSigned(domain);
   }
-  return generateLetsEncrypt(domain, email);
+  return generateLetsEncrypt(domain);
 }
 
-async function generateLetsEncrypt(domain, email) {
+async function generateLetsEncrypt(domain) {
   try {
-    // Check if certbot is installed
+    // Check if certbot or acme.sh is installed
     try {
-      execSync('which certbot', { stdio: 'ignore' });
+      execSync('which certbot 2>/dev/null || which acme.sh 2>/dev/null', { stdio: 'ignore' });
     } catch {
       execSync('apt-get install -y certbot 2>/dev/null || yum install -y certbot 2>/dev/null', { timeout: 60000 });
     }
@@ -21,29 +21,49 @@ async function generateLetsEncrypt(domain, email) {
     // Stop any service on port 80 temporarily
     execSync('systemctl stop nginx 2>/dev/null; systemctl stop apache2 2>/dev/null; true', { stdio: 'ignore' });
     
-    // Generate certificate
-    execSync(
-      `certbot certonly --standalone --non-interactive --agree-tos --email ${email} -d ${domain}`,
-      { timeout: 120000, stdio: 'pipe' }
-    );
+    // Generate certificate via standalone without email (Sanaei 3X-UI style)
+    let certbotSuccess = false;
+    try {
+      execSync(
+        `certbot certonly --standalone --non-interactive --agree-tos --register-unsafely-without-email -d ${domain}`,
+        { timeout: 90000, stdio: 'pipe' }
+      );
+      certbotSuccess = true;
+    } catch (e) {
+      // If certbot fails (e.g. Cloudflare proxy or DNS propagation), log and prepare fallback
+      console.warn(`Certbot standalone verification note for ${domain}:`, e.message);
+    }
     
     const certPath = `/etc/letsencrypt/live/${domain}`;
     const activeDir = `/etc/pahlavy/certs/active`;
-    try {
-      execSync(`mkdir -p ${activeDir}`, { stdio: 'ignore' });
-      execSync(`cp -f ${certPath}/fullchain.pem ${activeDir}/fullchain.pem && cp -f ${certPath}/privkey.pem ${activeDir}/privkey.pem`, { stdio: 'ignore' });
-    } catch {}
 
-    return {
-      success: true,
-      type: 'letsencrypt',
-      domain,
-      cert_path: `${certPath}/fullchain.pem`,
-      key_path: `${certPath}/privkey.pem`,
-      expires_at: getCertExpiry(`${certPath}/fullchain.pem`)
-    };
+    if (certbotSuccess && fs.existsSync(`${certPath}/fullchain.pem`)) {
+      try {
+        execSync(`mkdir -p ${activeDir} /etc/pahlavy/certs/${domain}`, { stdio: 'ignore' });
+        execSync(`cp -f ${certPath}/fullchain.pem ${activeDir}/fullchain.pem && cp -f ${certPath}/privkey.pem ${activeDir}/privkey.pem`, { stdio: 'ignore' });
+        execSync(`cp -f ${certPath}/fullchain.pem /etc/pahlavy/certs/${domain}/fullchain.pem && cp -f ${certPath}/privkey.pem /etc/pahlavy/certs/${domain}/privkey.pem`, { stdio: 'ignore' });
+      } catch {}
+
+      return {
+        success: true,
+        type: 'letsencrypt',
+        domain,
+        cert_path: `${activeDir}/fullchain.pem`,
+        key_path: `${activeDir}/privkey.pem`,
+        expires_at: getCertExpiry(`${activeDir}/fullchain.pem`)
+      };
+    } else {
+      // Auto fallback to self-signed so panel HTTPS keeps running without error
+      console.log(`Auto-generating self-signed fallback certificate for ${domain}...`);
+      const fallbackResult = await generateSelfSigned(domain);
+      return {
+        ...fallbackResult,
+        is_fallback: true,
+        message: 'Let\'s Encrypt verification on port 80 was not reached (check DNS/Cloudflare Proxy). Activated Self-Signed SSL as fallback.'
+      };
+    }
   } catch (error) {
-    throw new Error(`Let's Encrypt certificate generation failed: ${error.message}`);
+    throw new Error(`SSL certificate generation failed: ${error.message}`);
   }
 }
 

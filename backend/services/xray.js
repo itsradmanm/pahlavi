@@ -362,6 +362,8 @@ async function collectXrayTraffic() {
 
 // ========== Client Expiry & Quota Checker Cron ==========
 
+const { sendTelegramMessage } = require('./telegram');
+
 function startConfigExpiryChecker() {
   // Check every 1 minute
   cron.schedule('* * * * *', async () => {
@@ -372,7 +374,7 @@ function startConfigExpiryChecker() {
         WHERE enable = true
           AND expires_at IS NOT NULL
           AND expires_at < NOW()
-        RETURNING id
+        RETURNING id, email
       `);
 
       const quotaFull = await query(`
@@ -381,8 +383,20 @@ function startConfigExpiryChecker() {
         WHERE enable = true
           AND traffic_limit_gb > 0
           AND traffic_used_gb >= traffic_limit_gb
-        RETURNING id
+        RETURNING id, email, traffic_used_gb, traffic_limit_gb
       `);
+
+      if (expired.rows.length > 0) {
+        for (const c of expired.rows) {
+          sendTelegramMessage(`⚠️ *انقضای حساب کاربر*\n\nکاربر: \`${c.email}\` منقضی شد و دسترسی غیرفعال گردید.`);
+        }
+      }
+
+      if (quotaFull.rows.length > 0) {
+        for (const c of quotaFull.rows) {
+          sendTelegramMessage(`🚫 *اتمام حجم کاربر*\n\nکاربر: \`${c.email}\`\nسقف: ${c.traffic_limit_gb} GB\nمصرف: ${c.traffic_used_gb} GB\nدسترسی غیرفعال شد.`);
+        }
+      }
 
       if (expired.rows.length > 0 || quotaFull.rows.length > 0) {
         applyConfigToXray().catch(console.error);
