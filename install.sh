@@ -206,7 +206,49 @@ fi
 
 cd "$INSTALL_DIR/backend"
 
-# Create .env file
+# Step 8: SSL Certificate Configuration
+echo -e "\n${BLUE}[6/7] Configuring SSL / TLS certificates...${NC}"
+IS_SSL=false
+PROTO="http"
+
+if [[ "$ENABLE_SSL" =~ ^[Yy]$ ]] && [ -n "$SERVER_HOST" ] && [ "$SERVER_HOST" != "127.0.0.1" ]; then
+    echo -e "${YELLOW}Attempting to issue Let's Encrypt SSL certificate for $SERVER_HOST...${NC}"
+    systemctl stop nginx 2>/dev/null || true
+    systemctl stop apache2 2>/dev/null || true
+    
+    if [ -n "$SSL_EMAIL" ]; then
+        certbot certonly --standalone --non-interactive --agree-tos --email "$SSL_EMAIL" -d "$SERVER_HOST" 2>/dev/null || true
+    else
+        certbot certonly --standalone --non-interactive --agree-tos --register-unsafely-without-email -d "$SERVER_HOST" 2>/dev/null || true
+    fi
+
+    mkdir -p /etc/pahlavy/certs/active /etc/pahlavy/certs/"$SERVER_HOST"
+
+    if [ -f "/etc/letsencrypt/live/$SERVER_HOST/fullchain.pem" ]; then
+        cp -f "/etc/letsencrypt/live/$SERVER_HOST/fullchain.pem" /etc/pahlavy/certs/active/fullchain.pem
+        cp -f "/etc/letsencrypt/live/$SERVER_HOST/privkey.pem" /etc/pahlavy/certs/active/privkey.pem
+        cp -f "/etc/letsencrypt/live/$SERVER_HOST/fullchain.pem" "/etc/pahlavy/certs/$SERVER_HOST/fullchain.pem"
+        cp -f "/etc/letsencrypt/live/$SERVER_HOST/privkey.pem" "/etc/pahlavy/certs/$SERVER_HOST/privkey.pem"
+        IS_SSL=true
+        PROTO="https"
+        echo -e "${GREEN}✓ Let's Encrypt SSL certificate successfully obtained!${NC}"
+    else
+        echo -e "${YELLOW}⚠️ Notice: Let's Encrypt verification did not complete on port 80 (likely Cloudflare Proxy or DNS propagation delay).${NC}"
+        echo -e "${CYAN}→ Auto-generating high-security Self-Signed SSL certificate so your panel runs securely on HTTPS immediately...${NC}"
+        openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+            -keyout /etc/pahlavy/certs/active/privkey.pem \
+            -out /etc/pahlavy/certs/active/fullchain.pem \
+            -subj "/C=US/ST=State/L=City/O=Pahlavy/CN=$SERVER_HOST" 2>/dev/null || true
+        cp -f /etc/pahlavy/certs/active/privkey.pem "/etc/pahlavy/certs/$SERVER_HOST/privkey.pem" 2>/dev/null || true
+        cp -f /etc/pahlavy/certs/active/fullchain.pem "/etc/pahlavy/certs/$SERVER_HOST/fullchain.pem" 2>/dev/null || true
+        IS_SSL=true
+        PROTO="https"
+        echo -e "${GREEN}✓ Self-Signed SSL activated. You can later run 'pahlavi cert' to reissue Let's Encrypt once DNS points to this VPS.${NC}"
+    fi
+fi
+
+# Step 9: Deploy Panel Files & Environment
+echo -e "\n${BLUE}[7/7] Setting up services, CLI and firewall...${NC}"
 cat <<EOF > "$INSTALL_DIR/backend/.env"
 PORT=$PANEL_PORT
 NODE_ENV=production
@@ -216,10 +258,13 @@ DB_NAME=$DB_NAME
 DB_USER=$DB_USER
 DB_PASS=$DB_PASS
 ADMIN_PASSWORD=$ADMIN_PASS
-PANEL_URL=http://$SERVER_HOST:$PANEL_PORT
-SUB_BASE_URL=http://$SERVER_HOST:$PANEL_PORT
+ENABLE_SSL=$IS_SSL
+PANEL_URL=$PROTO://$SERVER_HOST:$PANEL_PORT
+SUB_BASE_URL=$PROTO://$SERVER_HOST:$PANEL_PORT
 TLS_DOMAIN=$SERVER_HOST
 TLS_EMAIL=$SSL_EMAIL
+SSL_CERT_PATH=/etc/pahlavy/certs/active/fullchain.pem
+SSL_KEY_PATH=/etc/pahlavy/certs/active/privkey.pem
 JWT_SECRET=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 32 ; echo '')
 SESSION_SECRET=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 32 ; echo '')
 XRAY_CONFIG_PATH=/usr/local/etc/xray/config.json
@@ -229,8 +274,7 @@ EOF
 echo -e "${YELLOW}Installing lightweight Node.js packages...${NC}"
 NODE_OPTIONS="--max-old-space-size=512" npm install --omit=dev --no-audit --no-fund --maxsockets=2
 
-# Step 8: Install Global CLI Tool (pahlavi)
-echo -e "\n${BLUE}[6/7] Enabling global CLI command 'pahlavi'...${NC}"
+# Enable global CLI command (pahlavi)
 if [ -f "$INSTALL_DIR/pahlavi" ]; then
     chmod +x "$INSTALL_DIR/pahlavi"
     ln -sf "$INSTALL_DIR/pahlavi" /usr/local/bin/pahlavi
@@ -240,8 +284,7 @@ if [ -f "$INSTALL_DIR/pahlavi" ]; then
     ln -sf "$INSTALL_DIR/pahlavi" /bin/pahlavi 2>/dev/null || true
 fi
 
-# Step 9: Setup Systemd Service & Firewall
-echo -e "\n${BLUE}[7/7] Setting up systemd service and firewall...${NC}"
+# Setup Systemd Service
 cat <<EOF > /etc/systemd/system/pahlavy.service
 [Unit]
 Description=Pahlavi VPN Management Panel (Sanaei 3X-UI)
@@ -265,18 +308,28 @@ systemctl daemon-reload
 systemctl enable pahlavy
 systemctl restart pahlavy
 
-# Let's Encrypt automatic issuance if requested
-if [[ "$ENABLE_SSL" =~ ^[Yy]$ ]] && [ -n "$SSL_EMAIL" ] && [ -n "$SERVER_HOST" ] && [ "$SERVER_HOST" != "127.0.0.1" ]; then
-    echo -e "${YELLOW}Issuing free Let's Encrypt SSL certificate for $SERVER_HOST...${NC}"
-    certbot certonly --standalone --non-interactive --agree-tos --email "$SSL_EMAIL" -d "$SERVER_HOST" 2>/dev/null || true
-fi
-
-# Open Ports in Firewall
+# Configure Firewall (UFW / Iptables / Firewalld)
 if command -v ufw &> /dev/null; then
     ufw allow "$PANEL_PORT"/tcp 2>/dev/null || true
     ufw allow 80/tcp 2>/dev/null || true
     ufw allow 443/tcp 2>/dev/null || true
     ufw allow 8080/tcp 2>/dev/null || true
+    ufw reload 2>/dev/null || true
+fi
+
+if command -v iptables &> /dev/null; then
+    iptables -I INPUT -p tcp --dport "$PANEL_PORT" -j ACCEPT 2>/dev/null || true
+    iptables -I INPUT -p tcp --dport 80 -j ACCEPT 2>/dev/null || true
+    iptables -I INPUT -p tcp --dport 443 -j ACCEPT 2>/dev/null || true
+    iptables -I INPUT -p tcp --dport 8080 -j ACCEPT 2>/dev/null || true
+fi
+
+if command -v firewall-cmd &> /dev/null && systemctl is-active --quiet firewalld 2>/dev/null; then
+    firewall-cmd --add-port="$PANEL_PORT"/tcp --permanent 2>/dev/null || true
+    firewall-cmd --add-port=80/tcp --permanent 2>/dev/null || true
+    firewall-cmd --add-port=443/tcp --permanent 2>/dev/null || true
+    firewall-cmd --add-port=8080/tcp --permanent 2>/dev/null || true
+    firewall-cmd --reload 2>/dev/null || true
 fi
 
 # Final Summary Banner
@@ -288,9 +341,10 @@ echo "=================================================================="
 echo -e "${NC}"
 
 echo -e "📌 ${BOLD}Web Panel Access Information:${NC}"
-echo -e "   🌐 Web URL:      ${CYAN}${BOLD}http://$SERVER_HOST:$PANEL_PORT${NC}"
+echo -e "   🌐 Web URL:      ${CYAN}${BOLD}$PROTO://$SERVER_HOST:$PANEL_PORT${NC}"
 echo -e "   👤 Username:     ${CYAN}${BOLD}$ADMIN_USER${NC}"
-echo -e "   🔑 Password:     ${CYAN}${BOLD}$ADMIN_PASS${NC}\n"
+echo -e "   🔑 Password:     ${CYAN}${BOLD}$ADMIN_PASS${NC}"
+echo -e "   🔒 SSL Status:   ${GREEN}${BOLD}$([ "$IS_SSL" = true ] && echo "Active (HTTPS)" || echo "Disabled (HTTP)")${NC}\n"
 
 echo -e "📌 ${BOLD}Default Pre-configured Inbounds:${NC}"
 echo -e "   ⚡ ${GREEN}VLESS-REALITY${NC} (Port: 443 - xtls-rprx-vision)"
@@ -303,7 +357,7 @@ echo -e "   - Restart Services:      ${CYAN}pahlavi restart${NC}"
 echo -e "   - Live Streaming Logs:   ${CYAN}pahlavi logs${NC}"
 echo -e "   - Change Web Port:       ${CYAN}pahlavi port${NC}"
 echo -e "   - Reset Admin Pass:      ${CYAN}pahlavi admin${NC}"
-echo -e "   - Issue SSL Certificate: ${CYAN}pahlavi cert${NC}"
+echo -e "   - Issue / Switch SSL:    ${CYAN}pahlavi cert${NC}"
 echo -e "   - Backup Database:       ${CYAN}pahlavi backup${NC}"
 echo -e "   - Restore Database:      ${CYAN}pahlavi restore${NC}"
 echo -e "   - Update Xray-core:      ${CYAN}pahlavi core-update${NC}\n"

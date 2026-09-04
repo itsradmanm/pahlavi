@@ -86,6 +86,62 @@ app.use((err, req, res, next) => {
   });
 });
 
+const http = require('http');
+const https = require('https');
+const fs = require('fs');
+const { execSync } = require('child_process');
+
+function resolveSslCertificates() {
+  const isSslExplicitlyDisabled = process.env.ENABLE_SSL === 'false' || process.env.ENABLE_SSL === '0';
+  if (isSslExplicitlyDisabled) {
+    return { isSsl: false };
+  }
+
+  const isSslRequested = process.env.ENABLE_SSL === 'true' || process.env.ENABLE_SSL === '1';
+  const domain = process.env.TLS_DOMAIN;
+  const envCert = process.env.SSL_CERT_PATH;
+  const envKey = process.env.SSL_KEY_PATH;
+
+  const candidatePairs = [
+    { cert: envCert, key: envKey },
+    { cert: '/etc/pahlavy/certs/active/fullchain.pem', key: '/etc/pahlavy/certs/active/privkey.pem' },
+    domain ? { cert: `/etc/letsencrypt/live/${domain}/fullchain.pem`, key: `/etc/letsencrypt/live/${domain}/privkey.pem` } : null,
+    domain ? { cert: `/etc/pahlavy/certs/${domain}/fullchain.pem`, key: `/etc/pahlavy/certs/${domain}/privkey.pem` } : null
+  ].filter(Boolean);
+
+  for (const pair of candidatePairs) {
+    if (pair.cert && pair.key && fs.existsSync(pair.cert) && fs.existsSync(pair.key)) {
+      try {
+        const cert = fs.readFileSync(pair.cert);
+        const key = fs.readFileSync(pair.key);
+        return { isSsl: true, cert, key, certPath: pair.cert, keyPath: pair.key, isSelfSigned: pair.cert.includes('pahlavy') };
+      } catch (err) {
+        console.warn('⚠️ Could not read SSL cert pair:', pair, err.message);
+      }
+    }
+  }
+
+  // If SSL was explicitly enabled or domain is configured, generate self-signed fallback
+  if (isSslRequested && domain && domain !== '127.0.0.1' && domain !== 'localhost') {
+    try {
+      const certDir = `/etc/pahlavy/certs/${domain}`;
+      execSync(`mkdir -p ${certDir} /etc/pahlavy/certs/active`, { stdio: 'ignore' });
+      execSync(
+        `openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout ${certDir}/privkey.pem -out ${certDir}/fullchain.pem -subj "/CN=${domain}" 2>/dev/null`,
+        { timeout: 15000 }
+      );
+      execSync(`cp -f ${certDir}/privkey.pem /etc/pahlavy/certs/active/privkey.pem && cp -f ${certDir}/fullchain.pem /etc/pahlavy/certs/active/fullchain.pem`, { stdio: 'ignore' });
+      const cert = fs.readFileSync(`${certDir}/fullchain.pem`);
+      const key = fs.readFileSync(`${certDir}/privkey.pem`);
+      return { isSsl: true, cert, key, certPath: `${certDir}/fullchain.pem`, keyPath: `${certDir}/privkey.pem`, isSelfSigned: true };
+    } catch (e) {
+      console.warn('⚠️ Auto-generation of self-signed SSL cert fallback failed:', e.message);
+    }
+  }
+
+  return { isSsl: false };
+}
+
 // ========== Startup Sequence ==========
 async function start() {
   try {
@@ -106,10 +162,23 @@ async function start() {
     startConfigExpiryChecker();
     console.log('✅ Client expiry & quota checker started');
     
-    app.listen(PORT, '0.0.0.0', () => {
-      console.log(`🚀 Pahlavi Panel (Sanaei 3X-UI Edition) running on port ${PORT}`);
-      console.log(`🌐 Web UI: http://localhost:${PORT}`);
-    });
+    const ssl = resolveSslCertificates();
+    const host = process.env.TLS_DOMAIN || 'localhost';
+
+    if (ssl.isSsl && ssl.cert && ssl.key) {
+      const httpsServer = https.createServer({ cert: ssl.cert, key: ssl.key }, app);
+      httpsServer.listen(PORT, '0.0.0.0', () => {
+        console.log(`🚀 Pahlavi Panel (Sanaei 3X-UI Edition) running with HTTPS on port ${PORT}`);
+        console.log(`🔒 SSL Active: ${ssl.certPath} ${ssl.isSelfSigned ? '(Self-Signed Fallback)' : '(Valid SSL)'}`);
+        console.log(`🌐 Web UI: https://${host}:${PORT}`);
+      });
+    } else {
+      const httpServer = http.createServer(app);
+      httpServer.listen(PORT, '0.0.0.0', () => {
+        console.log(`🚀 Pahlavi Panel (Sanaei 3X-UI Edition) running with HTTP on port ${PORT}`);
+        console.log(`🌐 Web UI: http://${host}:${PORT}`);
+      });
+    }
   } catch (error) {
     console.error('❌ Failed to start server:', error);
     process.exit(1);

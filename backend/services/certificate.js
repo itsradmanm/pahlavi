@@ -28,7 +28,12 @@ async function generateLetsEncrypt(domain, email) {
     );
     
     const certPath = `/etc/letsencrypt/live/${domain}`;
-    
+    const activeDir = `/etc/pahlavy/certs/active`;
+    try {
+      execSync(`mkdir -p ${activeDir}`, { stdio: 'ignore' });
+      execSync(`cp -f ${certPath}/fullchain.pem ${activeDir}/fullchain.pem && cp -f ${certPath}/privkey.pem ${activeDir}/privkey.pem`, { stdio: 'ignore' });
+    } catch {}
+
     return {
       success: true,
       type: 'letsencrypt',
@@ -45,7 +50,8 @@ async function generateLetsEncrypt(domain, email) {
 async function generateSelfSigned(domain) {
   try {
     const certDir = `/etc/pahlavy/certs/${domain}`;
-    execSync(`mkdir -p ${certDir}`, { stdio: 'ignore' });
+    const activeDir = `/etc/pahlavy/certs/active`;
+    execSync(`mkdir -p ${certDir} ${activeDir}`, { stdio: 'ignore' });
     
     execSync(
       `openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
@@ -56,6 +62,8 @@ async function generateSelfSigned(domain) {
       { timeout: 30000 }
     );
     
+    execSync(`cp -f ${certDir}/privkey.pem ${activeDir}/privkey.pem && cp -f ${certDir}/fullchain.pem ${activeDir}/fullchain.pem`, { stdio: 'ignore' });
+
     return {
       success: true,
       type: 'selfsigned',
