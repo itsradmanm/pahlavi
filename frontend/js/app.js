@@ -5,12 +5,69 @@
 const AppState = {
   token: localStorage.getItem('pahlavy_token') || null,
   user: null,
-  lang: localStorage.getItem('pahlavy_lang') || 'fa',
+  lang: localStorage.getItem('pahlavy_lang') || 'en',
   currentPage: 'dashboard',
   settings: {}
 };
 
 const I18N = {
+  en: {
+    login_title: 'Sign in to Admin Panel',
+    login_desc: 'Enter your credentials to continue',
+    username: 'Username',
+    password: 'Password',
+    login_button: 'Sign In',
+    nav_dashboard: 'Dashboard',
+    nav_inbounds: 'Inbounds',
+    nav_resellers: 'Resellers',
+    nav_analytics: 'Analytics & Traffic',
+    nav_settings: 'Settings & SSL',
+    refresh: 'Refresh',
+    total_clients: 'Total Clients',
+    total_inbounds: 'Active Inbounds',
+    online_now: 'Online Now',
+    active_accounts: 'Active Accounts',
+    traffic_used_limit: 'Total Usage / Quota',
+    expiring_soon: 'Expiring Soon (7d)',
+    expired: 'Expired',
+    quota_full: 'Quota Full',
+    traffic_trend: 'Traffic Trend (Last 7 Days)',
+    traffic_trend_sub: 'Live Download / Upload aggregate from Xray-core',
+    download: 'Download',
+    upload: 'Upload',
+    config_status_chart: 'Accounts Status',
+    config_status_sub: 'Distribution of client accounts',
+    reseller_management: 'Reseller Management',
+    reseller_desc: 'Manage reseller accounts, allocate traffic and client quotas, custom branding',
+    create_reseller: 'Add New Reseller',
+    reseller_brand: 'Brand / Panel Name',
+    traffic_quota: 'Traffic Quota',
+    configs_quota: 'Clients Quota',
+    created_configs_count: 'Created',
+    account_expiry: 'Account Expiry',
+    sub_reseller_perm: 'Sub-Reseller Perm',
+    status: 'Status',
+    actions: 'Actions',
+    ssl_cert_title: 'SSL / TLS Certificate Management',
+    ssl_cert_desc: 'Issue verified Let\'s Encrypt or Self-Signed SSL certs for domains & inbounds',
+    domain_name: 'Domain or Subdomain (SNI)',
+    domain_hint: 'Ensure DNS A record points to this server IP address',
+    ssl_email: 'Email for Let\'s Encrypt alerts',
+    cert_type: 'Certificate Type',
+    issue_cert_btn: 'Issue & Install Certificate',
+    general_settings: 'General Panel Settings',
+    general_settings_desc: 'Configure subscription base URL, panel title and defaults',
+    panel_title_label: 'Panel Title',
+    sub_base_url: 'Subscription Base URL',
+    sub_base_hint: 'Base address used to generate client subscription URLs',
+    save_settings: 'Save Settings',
+    change_password: 'Change Password',
+    current_password: 'Current Password',
+    new_password: 'New Password',
+    update_password: 'Update Password',
+    cancel: 'Cancel',
+    copied_to_clipboard: 'Link copied to clipboard successfully!'
+  },
   fa: {
     login_title: 'ورود به پنل مدیریت',
     login_desc: 'اطلاعات ورود خود را وارد نمایید',
@@ -46,6 +103,8 @@ const I18N = {
     created_configs_count: 'ساخته شده',
     account_expiry: 'انقضای حساب',
     sub_reseller_perm: 'دسترسی زیرنماینده',
+    status: 'وضعیت',
+    actions: 'عملیات',
     ssl_cert_title: 'مدیریت سرتیفیکیت SSL / TLS',
     ssl_cert_desc: 'صدور گواهینامه معتبر Let\'s Encrypt یا Self-Signed برای دامنه و اینباندها',
     domain_name: 'نام دامنه یا ساب‌دامنه (Domain / SNI)',
@@ -65,61 +124,6 @@ const I18N = {
     update_password: 'بروزرسانی رمز',
     cancel: 'انصراف',
     copied_to_clipboard: 'لینک با موفقیت در کلیپ‌بورد کپی شد!'
-  },
-  en: {
-    login_title: 'Login to Admin Panel',
-    login_desc: 'Please enter your credentials to continue',
-    username: 'Username',
-    password: 'Password',
-    login_button: 'Sign In',
-    nav_dashboard: 'Dashboard',
-    nav_inbounds: 'Inbounds',
-    nav_resellers: 'Resellers',
-    nav_analytics: 'Analytics',
-    nav_settings: 'Settings & SSL',
-    refresh: 'Refresh',
-    total_clients: 'Total Clients',
-    total_inbounds: 'Active Inbounds',
-    online_now: 'Online Now',
-    active_accounts: 'Active Accounts',
-    traffic_used_limit: 'Total Usage / Quota',
-    expiring_soon: 'Expiring Soon (7d)',
-    expired: 'Expired',
-    quota_full: 'Quota Full',
-    traffic_trend: 'Traffic Trend (Last 7 Days)',
-    traffic_trend_sub: 'Live Download / Upload aggregate from Xray-core',
-    download: 'Download',
-    upload: 'Upload',
-    config_status_chart: 'Accounts Status',
-    config_status_sub: 'Distribution of client accounts',
-    reseller_management: 'Reseller Management',
-    reseller_desc: 'Manage reseller accounts, allocate traffic and client quotas, custom branding',
-    create_reseller: 'Add New Reseller',
-    reseller_brand: 'Brand / Panel Name',
-    traffic_quota: 'Traffic Quota',
-    configs_quota: 'Clients Quota',
-    created_configs_count: 'Created',
-    account_expiry: 'Account Expiry',
-    sub_reseller_perm: 'Sub-Reseller Perm',
-    ssl_cert_title: 'SSL / TLS Certificate',
-    ssl_cert_desc: 'Issue verified Let\'s Encrypt or Self-Signed SSL certs for domains & inbounds',
-    domain_name: 'Domain or Subdomain (SNI)',
-    domain_hint: 'Ensure DNS A record points to this server IP address',
-    ssl_email: 'Email for Let\'s Encrypt alerts',
-    cert_type: 'Certificate Type',
-    issue_cert_btn: 'Issue & Install Certificate',
-    general_settings: 'General Panel Settings',
-    general_settings_desc: 'Configure subscription base URL, panel title and defaults',
-    panel_title_label: 'Panel Title',
-    sub_base_url: 'Subscription Base URL',
-    sub_base_hint: 'Base address used to generate client subscription URLs',
-    save_settings: 'Save Settings',
-    change_password: 'Change Password',
-    current_password: 'Current Password',
-    new_password: 'New Password',
-    update_password: 'Update Password',
-    cancel: 'Cancel',
-    copied_to_clipboard: 'Link copied to clipboard successfully!'
   }
 };
 
@@ -149,6 +153,7 @@ async function apiFetch(endpoint, options = {}) {
 
 function showToast(message, type = 'info') {
   const container = document.getElementById('toast-container');
+  if (!container) return;
   const toast = document.createElement('div');
   toast.className = `toast toast-${type}`;
   
@@ -174,11 +179,16 @@ function setLanguage(lang) {
   document.documentElement.lang = lang;
   document.documentElement.dir = lang === 'fa' ? 'rtl' : 'ltr';
   
-  const dict = I18N[lang] || I18N.fa;
+  const dict = I18N[lang] || I18N.en;
   document.querySelectorAll('[data-i18n]').forEach(el => {
     const key = el.getAttribute('data-i18n');
     if (dict[key]) el.textContent = dict[key];
   });
+
+  const langSwitchLink = document.getElementById('login-lang-switch');
+  if (langSwitchLink) {
+    langSwitchLink.textContent = lang === 'en' ? 'فارسی (FA)' : 'English (EN)';
+  }
 
   updateLiveDate();
 }
@@ -209,7 +219,7 @@ function navigateTo(pageId) {
   if (targetPage) targetPage.classList.add('active');
   if (targetNav) targetNav.classList.add('active');
   
-  const dict = I18N[AppState.lang] || I18N.fa;
+  const dict = I18N[AppState.lang] || I18N.en;
   const titleKey = `nav_${pageId}`;
   document.getElementById('page-title').textContent = dict[titleKey] || pageId;
   
@@ -274,7 +284,7 @@ function handleLogout() {
 async function copyToClipboard(text) {
   try {
     await navigator.clipboard.writeText(text);
-    const dict = I18N[AppState.lang] || I18N.fa;
+    const dict = I18N[AppState.lang] || I18N.en;
     showToast(dict.copied_to_clipboard, 'success');
   } catch {
     const input = document.createElement('input');
@@ -308,7 +318,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       AppState.token = data.token;
       localStorage.setItem('pahlavy_token', data.token);
-      showToast('خوش آمدید / Welcome!', 'success');
+      showToast('Welcome to Pahlavi Panel!', 'success');
       await checkAuth();
     } catch {}
   });
@@ -316,10 +326,10 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btn-logout').addEventListener('click', handleLogout);
 
   document.getElementById('btn-lang-toggle').addEventListener('click', () => {
-    setLanguage(AppState.lang === 'fa' ? 'en' : 'fa');
+    setLanguage(AppState.lang === 'en' ? 'fa' : 'en');
   });
   document.getElementById('login-lang-switch').addEventListener('click', () => {
-    setLanguage(AppState.lang === 'fa' ? 'en' : 'fa');
+    setLanguage(AppState.lang === 'en' ? 'fa' : 'en');
   });
 
   document.querySelectorAll('.sidebar-nav .nav-item').forEach(btn => {
@@ -331,7 +341,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('btn-refresh-all').addEventListener('click', () => {
     navigateTo(AppState.currentPage);
-    showToast('بروزرسانی شد / Refreshed', 'info');
+    showToast('Refreshed', 'info');
   });
 
   checkAuth();

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
 # ==============================================================================
-# PAHLAVY VPN PANEL - AUTOMATED INSTALLATION SCRIPT (SANAEI 3X-UI EDITION)
-# اسکریپت نصب خودکار، تعاملی و فوق حرفه‌ای پنل مدیریت پهلوی
+# PAHLAVI VPN PANEL - AUTOMATED INSTALLATION SCRIPT (SANAEI 3X-UI EDITION)
+# Automated & Interactive Installer for Pahlavi Management Panel
 # ==============================================================================
 
 set -e
@@ -18,7 +18,7 @@ BOLD='\033[1m'
 NC='\033[0m'
 
 if [ "$EUID" -ne 0 ]; then
-    echo -e "${RED}[ERROR] لطفا این اسکریپت را با دسترسی root اجرا کنید (sudo bash install.sh).${NC}"
+    echo -e "${RED}[ERROR] Please run this script with root privileges (sudo bash install.sh).${NC}"
     exit 1
 fi
 
@@ -31,20 +31,20 @@ echo "    ██████╔╝███████║███████�
 echo "    ██╔═══╝ ██╔══██║██╔══██║██║     ██╔══██║╚██╗ ██╔╝  ╚██╔╝  "
 echo "    ██║     ██║  ██║██║  ██║███████╗██║  ██║ ╚████╔╝    ██║   "
 echo "    ╚═╝     ╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝  ╚═══╝     ╚═╝   "
-echo "          🦁 پنل مدیریت وی‌پی‌ان پهلوی (Sanaei 3X-UI Edition) 🦁       "
+echo "          🦁 Pahlavi Panel (Sanaei 3X-UI Edition) 🦁       "
 echo "  =================================================================="
 echo -e "${NC}"
 
-echo -e "${YELLOW}به نصاب خودکار پنل پهلوی خوش آمدید.${NC}\n"
+echo -e "${YELLOW}Welcome to the Pahlavi Panel automated installer.${NC}\n"
 
 # Step 1: Detect Operating System & Architecture
-echo -e "${BLUE}[1/7] بررسی و تشخیص سیستم‌عامل و سخت‌افزار...${NC}"
+echo -e "${BLUE}[1/7] Detecting OS and hardware architecture...${NC}"
 if [ -f /etc/os-release ]; then
     . /etc/os-release
     OS=$ID
     VER=$VERSION_ID
 else
-    echo -e "${RED}سیستم‌عامل پشتیبانی نمی‌شود.${NC}"
+    echo -e "${RED}Unsupported Operating System.${NC}"
     exit 1
 fi
 
@@ -53,55 +53,55 @@ case "$ARCH" in
     x86_64|amd64) ARCH="64" ;;
     aarch64|arm64) ARCH="arm64-v8a" ;;
     armv7l) ARCH="arm32-v7a" ;;
-    *) echo -e "${YELLOW}معماری: $ARCH${NC}" ;;
+    *) echo -e "${YELLOW}Architecture: $ARCH${NC}" ;;
 esac
 
-echo -e "${GREEN}✓ سیستم‌عامل: $OS $VER ($ARCH)${NC}\n"
+echo -e "${GREEN}✓ OS: $OS $VER ($ARCH)${NC}\n"
 
 # Step 2: Interactive Configuration
-echo -e "${CYAN}${BOLD}--- تنظیمات اولیه پنل ---${NC}"
+echo -e "${CYAN}${BOLD}--- Panel Configuration ---${NC}"
 
-read -p "$(echo -e "${YELLOW}پورت وب پنل [پیش‌فرض 3000]: ${NC}")" PANEL_PORT
+read -p "$(echo -e "${YELLOW}Web Panel Port [Default 3000]: ${NC}")" PANEL_PORT
 PANEL_PORT=${PANEL_PORT:-3000}
 
-read -p "$(echo -e "${YELLOW}نام کاربری ادمین [پیش‌فرض admin]: ${NC}")" ADMIN_USER
+read -p "$(echo -e "${YELLOW}Admin Username [Default admin]: ${NC}")" ADMIN_USER
 ADMIN_USER=${ADMIN_USER:-admin}
 
-read -p "$(echo -e "${YELLOW}رمز عبور ادمین [پیش‌فرض admin123]: ${NC}")" ADMIN_PASS
+read -p "$(echo -e "${YELLOW}Admin Password [Default admin123]: ${NC}")" ADMIN_PASS
 ADMIN_PASS=${ADMIN_PASS:-admin123}
 
 DEFAULT_IP=$(curl -s4 ifconfig.me || curl -s4 api.ipify.org || curl -s4 icanhazip.com || echo "127.0.0.1")
-read -p "$(echo -e "${YELLOW}دامنه یا آی‌پی سرور (مثال: vpn.domain.com یا $DEFAULT_IP) [پیش‌فرض $DEFAULT_IP]: ${NC}")" SERVER_HOST
+read -p "$(echo -e "${YELLOW}Server Domain or Public IP [Default $DEFAULT_IP]: ${NC}")" SERVER_HOST
 SERVER_HOST=${SERVER_HOST:-$DEFAULT_IP}
 
-echo -e "\n${YELLOW}آیا مایلید سرتیفیکیت رایگان Let's Encrypt فعال شود؟${NC}"
-read -p "$(echo -e "${YELLOW}(y/n) [پیش‌فرض n]: ${NC}")" ENABLE_SSL
+echo -e "\n${YELLOW}Would you like to issue a free Let's Encrypt SSL Certificate?${NC}"
+read -p "$(echo -e "${YELLOW}(y/n) [Default n]: ${NC}")" ENABLE_SSL
 ENABLE_SSL=${ENABLE_SSL:-n}
 
 SSL_EMAIL=""
 if [[ "$ENABLE_SSL" =~ ^[Yy]$ ]]; then
-    read -p "$(echo -e "${YELLOW}ایمیل جهت دریافت هشدارهای انقضای گواهی: ${NC}")" SSL_EMAIL
+    read -p "$(echo -e "${YELLOW}Email for Let's Encrypt renewal alerts: ${NC}")" SSL_EMAIL
 fi
 
 DB_NAME="pahlavy"
 DB_USER="pahlavy"
 DB_PASS=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 20 ; echo '')
 
-echo -e "\n${GREEN}اطلاعات پیکربندی:${NC}"
-echo -e "  - پورت وب پنل: ${CYAN}$PANEL_PORT${NC}"
-echo -e "  - نام کاربری:   ${CYAN}$ADMIN_USER${NC}"
-echo -e "  - رمز عبور:     ${CYAN}$ADMIN_PASS${NC}"
-echo -e "  - دامنه / IP:   ${CYAN}$SERVER_HOST${NC}\n"
+echo -e "\n${GREEN}Configuration Summary:${NC}"
+echo -e "  - Web Port:       ${CYAN}$PANEL_PORT${NC}"
+echo -e "  - Admin User:     ${CYAN}$ADMIN_USER${NC}"
+echo -e "  - Admin Password: ${CYAN}$ADMIN_PASS${NC}"
+echo -e "  - Host / Domain:  ${CYAN}$SERVER_HOST${NC}\n"
 
-read -p "$(echo -e "${BOLD}آیا برای شروع فرآیند نصب اطمینان دارید؟ (y/n) [y]: ${NC}")" CONFIRM
+read -p "$(echo -e "${BOLD}Are you sure you want to proceed with installation? (y/n) [y]: ${NC}")" CONFIRM
 CONFIRM=${CONFIRM:-y}
 if [[ ! "$CONFIRM" =~ ^[Yy]$ ]]; then
-    echo -e "${RED}نصب لغو شد.${NC}"
+    echo -e "${RED}Installation cancelled.${NC}"
     exit 0
 fi
 
 # Step 3: Install Core Dependencies
-echo -e "\n${BLUE}[2/7] نصب پکیج‌های پیش‌نیاز سیستم (Node.js 20, PostgreSQL, Certbot)...${NC}"
+echo -e "\n${BLUE}[2/7] Installing required dependencies (Node.js 20, PostgreSQL, Certbot)...${NC}"
 
 if [[ "$OS" == "ubuntu" || "$OS" == "debian" ]]; then
     export DEBIAN_FRONTEND=noninteractive
@@ -109,7 +109,7 @@ if [[ "$OS" == "ubuntu" || "$OS" == "debian" ]]; then
     apt-get install -y curl wget gnupg2 ca-certificates lsb-release ufw git build-essential socat nano cron net-tools
 
     if ! command -v node &> /dev/null || [[ $(node -v | cut -d'.' -f1 | tr -d 'v') -lt 18 ]]; then
-        echo -e "${YELLOW}نصب Node.js 20 LTS...${NC}"
+        echo -e "${YELLOW}Installing Node.js 20 LTS...${NC}"
         curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
         apt-get install -y nodejs
     fi
@@ -132,13 +132,13 @@ elif [[ "$OS" == "centos" || "$OS" == "almalinux" || "$OS" == "rocky" ]]; then
     systemctl start postgresql
 fi
 
-echo -e "${GREEN}✓ تمام پیش‌نیازها با موفقیت نصب شدند.${NC}"
+echo -e "${GREEN}✓ Dependencies installed successfully.${NC}"
 
 # Step 4: Install Xray-Core
-echo -e "\n${BLUE}[3/7] نصب هسته رسمی Xray-core...${NC}"
+echo -e "\n${BLUE}[3/7] Installing official Xray-core...${NC}"
 if ! command -v xray &> /dev/null; then
     bash -c "$(curl -L https://github.com/XTLS/Xray-install/raw/main/install-release.sh)" @ install || {
-        echo -e "${YELLOW}نصب Xray از طریق گیت‌هاب رسمی...${NC}"
+        echo -e "${YELLOW}Fallback: Downloading Xray release from GitHub...${NC}"
         mkdir -p /usr/local/bin /usr/local/etc/xray
         XRAY_VER="v1.8.24"
         wget -qO /tmp/xray.zip "https://github.com/XTLS/Xray-core/releases/download/${XRAY_VER}/Xray-linux-64.zip" 2>/dev/null || true
@@ -152,17 +152,17 @@ fi
 
 mkdir -p /usr/local/etc/xray
 systemctl enable xray 2>/dev/null || true
-echo -e "${GREEN}✓ هسته Xray-core نصب و آماده شد.${NC}"
+echo -e "${GREEN}✓ Xray-core installed and enabled.${NC}"
 
 # Step 5: Configure PostgreSQL Database
-echo -e "\n${BLUE}[4/7] ایجاد و پیکربندی دیتابیس PostgreSQL...${NC}"
+echo -e "\n${BLUE}[4/7] Configuring PostgreSQL database...${NC}"
 sudo -u postgres psql -c "CREATE USER $DB_USER WITH PASSWORD '$DB_PASS';" 2>/dev/null || sudo -u postgres psql -c "ALTER USER $DB_USER WITH PASSWORD '$DB_PASS';" 2>/dev/null || true
 sudo -u postgres psql -c "CREATE DATABASE $DB_NAME OWNER $DB_USER;" 2>/dev/null || true
 sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;" 2>/dev/null || true
 sudo -u postgres psql -c "ALTER DATABASE $DB_NAME OWNER TO $DB_USER;" 2>/dev/null || true
 
 # Step 6: Deploy Panel Files
-echo -e "\n${BLUE}[5/7] استقرار فایل‌های پنل پهلوی در /opt/pahlavy...${NC}"
+echo -e "\n${BLUE}[5/7] Deploying Pahlavi Panel to /opt/pahlavy...${NC}"
 INSTALL_DIR="/opt/pahlavy"
 mkdir -p "$INSTALL_DIR"
 
@@ -173,8 +173,20 @@ if [ -d "$SCRIPT_DIR/backend" ]; then
     cp -r "$SCRIPT_DIR/frontend" "$INSTALL_DIR/"
     cp "$SCRIPT_DIR/uninstall.sh" "$INSTALL_DIR/" 2>/dev/null || true
     cp "$SCRIPT_DIR/pahlavi" "$INSTALL_DIR/" 2>/dev/null || true
+elif [ -d "./backend" ]; then
+    cp -r ./backend "$INSTALL_DIR/"
+    cp -r ./frontend "$INSTALL_DIR/"
+    cp ./uninstall.sh "$INSTALL_DIR/" 2>/dev/null || true
+    cp ./pahlavi "$INSTALL_DIR/" 2>/dev/null || true
 else
-    cp -r ./* "$INSTALL_DIR/"
+    echo -e "${YELLOW}Fetching latest source code from GitHub...${NC}"
+    rm -rf /tmp/pahlavi-source
+    git clone https://github.com/itsradmanm/pahlavi.git /tmp/pahlavi-source
+    cp -r /tmp/pahlavi-source/backend "$INSTALL_DIR/"
+    cp -r /tmp/pahlavi-source/frontend "$INSTALL_DIR/"
+    cp /tmp/pahlavi-source/uninstall.sh "$INSTALL_DIR/" 2>/dev/null || true
+    cp /tmp/pahlavi-source/pahlavi "$INSTALL_DIR/" 2>/dev/null || true
+    rm -rf /tmp/pahlavi-source
 fi
 
 cd "$INSTALL_DIR/backend"
@@ -199,11 +211,11 @@ XRAY_CONFIG_PATH=/usr/local/etc/xray/config.json
 XRAY_API_PORT=62789
 EOF
 
-echo -e "${YELLOW}نصب پکیج‌های Node.js...${NC}"
+echo -e "${YELLOW}Installing Node.js packages...${NC}"
 npm install --production --silent
 
 # Step 7: Install Global CLI Tool (pahlavi)
-echo -e "\n${BLUE}[6/7] فعال‌سازی دستور خط فرمان سراسری pahlavi...${NC}"
+echo -e "\n${BLUE}[6/7] Enabling global CLI command 'pahlavi'...${NC}"
 if [ -f "$INSTALL_DIR/pahlavi" ]; then
     chmod +x "$INSTALL_DIR/pahlavi"
     ln -sf "$INSTALL_DIR/pahlavi" /usr/local/bin/pahlavi
@@ -213,7 +225,7 @@ if [ -f "$INSTALL_DIR/pahlavi" ]; then
 fi
 
 # Step 8: Setup Systemd Service & Firewall
-echo -e "\n${BLUE}[7/7] پیکربندی سرویس پس‌زمینه systemd...${NC}"
+echo -e "\n${BLUE}[7/7] Setting up systemd service and firewall...${NC}"
 cat <<EOF > /etc/systemd/system/pahlavy.service
 [Unit]
 Description=Pahlavi VPN Management Panel (Sanaei 3X-UI)
@@ -239,7 +251,7 @@ systemctl restart pahlavy
 
 # Let's Encrypt automatic issuance if requested
 if [[ "$ENABLE_SSL" =~ ^[Yy]$ ]] && [ -n "$SSL_EMAIL" ] && [ -n "$SERVER_HOST" ] && [ "$SERVER_HOST" != "127.0.0.1" ]; then
-    echo -e "${YELLOW}در حال دریافت سرتیفیکیت SSL رایگان برای $SERVER_HOST...${NC}"
+    echo -e "${YELLOW}Issuing free Let's Encrypt SSL certificate for $SERVER_HOST...${NC}"
     certbot certonly --standalone --non-interactive --agree-tos --email "$SSL_EMAIL" -d "$SERVER_HOST" 2>/dev/null || true
 fi
 
@@ -255,28 +267,29 @@ fi
 clear
 echo -e "${GREEN}${BOLD}"
 echo "=================================================================="
-echo "    🎉 نصب پنل پهلوی با موفقیت به پایان رسید! 🎉"
-echo "    🦁 Pahlavi Panel (Sanaei 3X-UI) Successfully Installed! 🦁"
+echo "    🎉 Pahlavi Panel (Sanaei 3X-UI) Successfully Installed! 🎉"
 echo "=================================================================="
 echo -e "${NC}"
 
-echo -e "📌 ${BOLD}اطلاعات ورود به وب پنل:${NC}"
-echo -e "   🌐 آدرس وب پنل:  ${CYAN}${BOLD}http://$SERVER_HOST:$PANEL_PORT${NC}"
-echo -e "   👤 نام کاربری:   ${CYAN}${BOLD}$ADMIN_USER${NC}"
-echo -e "   🔑 رمز عبور:     ${CYAN}${BOLD}$ADMIN_PASS${NC}\n"
+echo -e "📌 ${BOLD}Web Panel Access Information:${NC}"
+echo -e "   🌐 Web URL:      ${CYAN}${BOLD}http://$SERVER_HOST:$PANEL_PORT${NC}"
+echo -e "   👤 Username:     ${CYAN}${BOLD}$ADMIN_USER${NC}"
+echo -e "   🔑 Password:     ${CYAN}${BOLD}$ADMIN_PASS${NC}\n"
 
-echo -e "📌 ${BOLD}کانفیگ‌های پیش‌فرض آماده اتصال (آماده شده در پنل):${NC}"
+echo -e "📌 ${BOLD}Default Pre-configured Inbounds:${NC}"
 echo -e "   ⚡ ${GREEN}VLESS-REALITY${NC} (Port: 443 - xtls-rprx-vision)"
 echo -e "   ⚡ ${GREEN}VMESS-WS${NC}      (Port: 8080)\n"
 
-echo -e "📌 ${BOLD}دستورات خط فرمان مدیریت اختصاصی (مشابه مرزبان / 3X-UI):${NC}"
-echo -e "   کافیست در ترمینال بنویسید:  ${YELLOW}${BOLD}pahlavi${NC}"
-echo -e "   - وضعیت سرور و Xray:      ${CYAN}pahlavi status${NC}"
-echo -e "   - ری‌استارت سرویس‌ها:      ${CYAN}pahlavi restart${NC}"
-echo -e "   - مشاهده لاگ‌های زنده:     ${CYAN}pahlavi logs${NC}"
-echo -e "   - تغییر پورت وب پنل:      ${CYAN}pahlavi port${NC}"
-echo -e "   - ریست پسورد ادمین:       ${CYAN}pahlavi admin${NC}"
-echo -e "   - صدور گواهی SSL:          ${CYAN}pahlavi cert${NC}"
-echo -e "   - بروزرسانی هسته Xray:    ${CYAN}pahlavi core-update${NC}\n"
+echo -e "📌 ${BOLD}Global CLI Management Tool (Marzban & 3X-UI style):${NC}"
+echo -e "   Simply run in terminal:  ${YELLOW}${BOLD}pahlavi${NC}"
+echo -e "   - Check Status:          ${CYAN}pahlavi status${NC}"
+echo -e "   - Restart Services:      ${CYAN}pahlavi restart${NC}"
+echo -e "   - Live Streaming Logs:   ${CYAN}pahlavi logs${NC}"
+echo -e "   - Change Web Port:       ${CYAN}pahlavi port${NC}"
+echo -e "   - Reset Admin Pass:      ${CYAN}pahlavi admin${NC}"
+echo -e "   - Issue SSL Certificate: ${CYAN}pahlavi cert${NC}"
+echo -e "   - Backup Database:       ${CYAN}pahlavi backup${NC}"
+echo -e "   - Restore Database:      ${CYAN}pahlavi restore${NC}"
+echo -e "   - Update Xray-core:      ${CYAN}pahlavi core-update${NC}\n"
 
-echo -e "${GREEN}برای شروع، آدرس وب پنل را در مرورگر خود باز کنید.${NC}\n"
+echo -e "${GREEN}Open the Web URL in your browser to get started!${NC}\n"
