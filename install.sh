@@ -100,7 +100,22 @@ if [[ ! "$CONFIRM" =~ ^[Yy]$ ]]; then
     exit 0
 fi
 
-# Step 3: Install Core Dependencies
+# Step 3: Setup Swap for Low-Memory VPS (Prevents OOM Killer)
+SWAP_TOTAL=$(free -m 2>/dev/null | awk '/Swap:/ {print $2}' || echo "0")
+MEM_TOTAL=$(free -m 2>/dev/null | awk '/Mem:/ {print $2}' || echo "1024")
+if [ "${SWAP_TOTAL:-0}" -lt 512 ] && [ "${MEM_TOTAL:-0}" -lt 2048 ]; then
+    echo -e "\n${YELLOW}Optimizing memory: creating 1GB swap file...${NC}"
+    if [ ! -f /swapfile ]; then
+        fallocate -l 1G /swapfile 2>/dev/null || dd if=/dev/zero of=/swapfile bs=1M count=1024 2>/dev/null
+        chmod 600 /swapfile
+        mkswap /swapfile 2>/dev/null
+        swapon /swapfile 2>/dev/null || true
+    else
+        swapon /swapfile 2>/dev/null || true
+    fi
+fi
+
+# Step 4: Install Core Dependencies
 echo -e "\n${BLUE}[2/7] Installing required dependencies (Node.js 20, PostgreSQL, Certbot)...${NC}"
 
 if [[ "$OS" == "ubuntu" || "$OS" == "debian" ]]; then
@@ -134,7 +149,7 @@ fi
 
 echo -e "${GREEN}✓ Dependencies installed successfully.${NC}"
 
-# Step 4: Install Xray-Core
+# Step 5: Install Xray-Core
 echo -e "\n${BLUE}[3/7] Installing official Xray-core...${NC}"
 if ! command -v xray &> /dev/null; then
     bash -c "$(curl -L https://github.com/XTLS/Xray-install/raw/main/install-release.sh)" @ install || {
@@ -154,14 +169,14 @@ mkdir -p /usr/local/etc/xray
 systemctl enable xray 2>/dev/null || true
 echo -e "${GREEN}✓ Xray-core installed and enabled.${NC}"
 
-# Step 5: Configure PostgreSQL Database
+# Step 6: Configure PostgreSQL Database
 echo -e "\n${BLUE}[4/7] Configuring PostgreSQL database...${NC}"
 sudo -u postgres psql -c "CREATE USER $DB_USER WITH PASSWORD '$DB_PASS';" 2>/dev/null || sudo -u postgres psql -c "ALTER USER $DB_USER WITH PASSWORD '$DB_PASS';" 2>/dev/null || true
 sudo -u postgres psql -c "CREATE DATABASE $DB_NAME OWNER $DB_USER;" 2>/dev/null || true
 sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;" 2>/dev/null || true
 sudo -u postgres psql -c "ALTER DATABASE $DB_NAME OWNER TO $DB_USER;" 2>/dev/null || true
 
-# Step 6: Deploy Panel Files
+# Step 7: Deploy Panel Files
 echo -e "\n${BLUE}[5/7] Deploying Pahlavi Panel to /opt/pahlavy...${NC}"
 INSTALL_DIR="/opt/pahlavy"
 mkdir -p "$INSTALL_DIR"
@@ -179,7 +194,7 @@ elif [ -d "./backend" ]; then
     cp ./uninstall.sh "$INSTALL_DIR/" 2>/dev/null || true
     cp ./pahlavi "$INSTALL_DIR/" 2>/dev/null || true
 else
-    echo -e "${YELLOW}Fetching latest source code from GitHub...${NC}"
+    echo -e "${YELLOW}Fetching source repository from GitHub...${NC}"
     rm -rf /tmp/pahlavi-source
     git clone https://github.com/itsradmanm/pahlavi.git /tmp/pahlavi-source
     cp -r /tmp/pahlavi-source/backend "$INSTALL_DIR/"
@@ -211,10 +226,10 @@ XRAY_CONFIG_PATH=/usr/local/etc/xray/config.json
 XRAY_API_PORT=62789
 EOF
 
-echo -e "${YELLOW}Installing Node.js packages...${NC}"
-npm install --production --silent
+echo -e "${YELLOW}Installing lightweight Node.js packages...${NC}"
+NODE_OPTIONS="--max-old-space-size=512" npm install --omit=dev --no-audit --no-fund --maxsockets=2
 
-# Step 7: Install Global CLI Tool (pahlavi)
+# Step 8: Install Global CLI Tool (pahlavi)
 echo -e "\n${BLUE}[6/7] Enabling global CLI command 'pahlavi'...${NC}"
 if [ -f "$INSTALL_DIR/pahlavi" ]; then
     chmod +x "$INSTALL_DIR/pahlavi"
@@ -222,9 +237,10 @@ if [ -f "$INSTALL_DIR/pahlavi" ]; then
     ln -sf "$INSTALL_DIR/pahlavi" /usr/local/bin/pahlavy
     ln -sf "$INSTALL_DIR/pahlavi" /usr/bin/pahlavi 2>/dev/null || true
     ln -sf "$INSTALL_DIR/pahlavi" /usr/bin/pahlavy 2>/dev/null || true
+    ln -sf "$INSTALL_DIR/pahlavi" /bin/pahlavi 2>/dev/null || true
 fi
 
-# Step 8: Setup Systemd Service & Firewall
+# Step 9: Setup Systemd Service & Firewall
 echo -e "\n${BLUE}[7/7] Setting up systemd service and firewall...${NC}"
 cat <<EOF > /etc/systemd/system/pahlavy.service
 [Unit]
